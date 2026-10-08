@@ -320,13 +320,19 @@ class MulleDriveCar extends MulleSprite {
 
       var a = '05d011v0'
 
-      var s = this.game.mulle.playAudio(a)
+      // Back to the garage when Mulle has said it. The car is destroyed if the world has been left
+      // in the meantime, and the Phaser timer is removed when the state changes.
+      const goHome = () => {
+        if (!this.game || this.game.state.current !== 'world') return
+        this.game.time.events.add(500, () => this.game.state.start('garage'))
+      }
 
-      s.onStop.addOnce(() => {
-        setTimeout(() => {
-          this.game.state.start('garage')
-        }, 500)
-      })
+      const s = this.game.mulle.playAudio(a)
+      if (s) {
+        s.onStop.addOnce(goHome)
+      } else {
+        goHome()
+      }
 
       return
     }
