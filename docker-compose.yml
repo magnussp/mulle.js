@@ -4,23 +4,10 @@ services:
       context: .
       args:
         GAME_LANG: ${GAME_LANG:-sv}
-        # Baked into the JS bundle and used by the browser, so it must be reachable from the host,
-        # not the compose network. Use wss://server.mulle.datagutten.net to play against the public server.
-        SERVER_ADDRESS: ${SERVER_ADDRESS:-ws://localhost:8765}
       # Directory holding mullebil_<lang>.iso and plugin.exe; overrides the "iso" stage in the Dockerfile
       additional_contexts:
         iso: ${ISO_DIR:-./iso}
     image: mulle-js:${GAME_LANG:-sv}
     ports:
       - "${WEB_PORT:-8080}:80"
-    restart: unless-stopped
-
-  server:
-    build: ./server
-    image: mulle-js-server
-    ports:
-      - "8765:8765"
-    # server.js runs an interactive admin prompt on stdin; attach with `docker attach <container>`
-    stdin_open: true
-    tty: true
     restart: unless-stopped

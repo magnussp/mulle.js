@@ -7,7 +7,6 @@
 import BootState from 'boot'
 import LoadState from 'load'
 
-import MulleNet from 'util/network'
 import MulleCursor from 'util/cursor'
 
 import MenuState from 'scenes/menu'
@@ -87,11 +86,6 @@ class MulleGame extends Phaser.Game {
 
     this.mulle.debug = false
     this.mulle.cheats = true
-
-    this.mulle.networkEnabled = true
-
-    this.mulle.networkServer = 'mulle.datagutten.net:8765'
-    this.mulle.networkDevServer = 'localhost:8765'
 
     this.mulle.defaultLanguage = 'english'
     // this.mulle.defaultLanguage = 'swedish';
@@ -394,8 +388,6 @@ class MulleGame extends Phaser.Game {
         return false
       }
     }
-
-    this.mulle.net = new MulleNet(this)
   }
 
   /**

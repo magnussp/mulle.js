@@ -166,17 +166,3 @@ body {
 	}
 
 }
-
-.chatInput {
-
-	border: none;
-	font: 14px Arial;
-	padding: 4px;
-	background: rgba(255,255,255,.5);
-	width: 180px;
-
-	&:focus {
-		background: rgba(255,255,255,1);
-	}
-
-}
