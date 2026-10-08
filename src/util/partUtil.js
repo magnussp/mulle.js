@@ -34,10 +34,11 @@ class partUtil {
    * @param partId
    * @param x
    * @param y
+   * @param {boolean} noPhysics Disable physics, the part will not fall to the ground
    * @returns {MulleCarPart}
    */
-  showPart (partId, x, y) {
-    const part = new MulleCarPart(this.game, partId, x, y)
+  showPart (partId, x, y, noPhysics = false) {
+    const part = new MulleCarPart(this.game, partId, x, y, noPhysics)
     part.input.inputEnabled = false
     part.input.disableDrag()
     return part

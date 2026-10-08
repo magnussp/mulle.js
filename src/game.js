@@ -38,8 +38,7 @@ import MulleSubtitle from 'objects/subtitle'
 import MulleAudio from 'objects/audio'
 
 import MulleSave from 'struct/savedata'
-// import PluginState from './scenes/plugin'
-// import TreeCarState from './scenes/treecar'
+import PluginState from './scenes/plugin'
 import MudCarState from './scenes/mudcar'
 import DirectorHelper from './objects/DirectorHelper'
 
@@ -142,7 +141,7 @@ class MulleGame extends Phaser.Game {
       album: AlbumState, // 06
       diploma: DiplomaState, // 08
 
-      //plugin: PluginState, // 66
+      plugin: PluginState, // 66
 
       mudcar: MudCarState, // 82
       //treecar: TreeCarState, // 83

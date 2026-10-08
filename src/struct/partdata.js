@@ -6,6 +6,9 @@ class MullePartData {
 
     this.partId = parseInt(partId)
 
+    // Director cast with the images of the part, the plugin (DLC) parts are in PLUGIN.CST
+    this.movie = this.partId >= 600 ? 'PLUGIN.CST' : 'CDDATA.CXT'
+
     this.data = partData // game.mulle.PartsDB[ partId ];
 
     this.junkView = this.data.junkView

@@ -118,7 +118,8 @@ class WorldState extends MulleState {
     // console.log('Map name', mapName)
     // console.log('Topology name', topName)
 
-    this.mapSprite.setDirectorMember('CDDATA.CXT', mapName)
+    // Find the map image by name, the plugin world has its maps in PLUGIN.CST
+    this.mapSprite.setDirectorMember(mapName)
 
     if (!this.topSprite) {
       this.topSprite = this.game.add.sprite(-320, -240, 'topography', topName)

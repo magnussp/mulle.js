@@ -20,16 +20,23 @@ def build_topography(source_path, output_path):
     if not os.path.exists(output_path):
         os.mkdir(output_path)
 
-    metadata = json.load(open(os.path.join(source_path, "..", "metadata.json")))
-    for num in range(693, 748 + 1, 2):
+    topographies = [(source_path, num) for num in range(693, 748 + 1, 2)]
+
+    # The plugin (DLC) world has its topography in PLUGIN.CST
+    plugin_path = os.path.join(source_path, '..', '..', 'PLUGIN.CST', 'Standalone')
+    if os.path.exists(plugin_path):
+        topographies.append((plugin_path, 16))
+
+    for path, num in topographies:
+        metadata = json.load(open(os.path.join(path, "..", "metadata.json")))
         data = metadata["libraries"][0]["members"][str(num)]
         data2 = metadata["libraries"][0]["members"][str(num + 1)]
         if data["name"] != data2["name"][:-2]:
             raise ValueError("Name mismatch")
 
-        with open(os.path.join(source_path, str(num) + ".txt"), "rb") as fp:
+        with open(os.path.join(path, str(num) + ".txt"), "rb") as fp:
             data_string = fp.read()
-        with open(os.path.join(source_path, str(num + 1) + ".txt"), "rb") as fp:
+        with open(os.path.join(path, str(num + 1) + ".txt"), "rb") as fp:
             data_string += fp.read()
 
         im = Image.new("P", [316, 198])
@@ -49,7 +56,6 @@ def build_topography(source_path, output_path):
                 x = 0
 
         im.save(os.path.join(output_path, data["name"] + ".png"))
-
 
 if __name__ == '__main__':
     build_topography(sys.argv[1], sys.argv[2])

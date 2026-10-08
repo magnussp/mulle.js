@@ -112,7 +112,7 @@ class MulleBuildCar extends Phaser.Group {
         let sprite_fg = new MulleSprite(this.game, 0, 0)
 
         // sprite_fg.setFrameId( partData.UseView );
-        sprite_fg.setDirectorMember('CDDATA.CXT', partData.UseView)
+        sprite_fg.setDirectorMember(partData.movie, partData.UseView)
 
         sprite_fg.partId = partId
 
@@ -153,7 +153,7 @@ class MulleBuildCar extends Phaser.Group {
         // let atlasId_bg = this.game.mulle.findFrame([cp1, cp2], partData.UseView2);
 
         let sprite_bg = new MulleSprite(this.game, 0, 0)
-        sprite_bg.setDirectorMember('CDDATA.CXT', partData.UseView2)
+        sprite_bg.setDirectorMember(partData.movie, partData.UseView2)
         sprite_bg.partId = partId
 
         sprite_bg.layer = partData.Requires[0]

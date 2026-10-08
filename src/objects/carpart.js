@@ -85,9 +85,9 @@ class MulleCarPart extends MulleSprite {
     }
 
     this.default = {
-      junkView: game.mulle.getDirectorImage('CDDATA.CXT', this.partData.junkView),
-      UseView: game.mulle.getDirectorImage('CDDATA.CXT', this.partData.UseView),
-      UseView2: game.mulle.getDirectorImage('CDDATA.CXT', this.partData.UseView2),
+      junkView: game.mulle.getDirectorImage(this.partData.movie, this.partData.junkView),
+      UseView: game.mulle.getDirectorImage(this.partData.movie, this.partData.UseView),
+      UseView2: game.mulle.getDirectorImage(this.partData.movie, this.partData.UseView2),
       offset: this.partData.offset.clone()
     }
 
@@ -109,9 +109,9 @@ class MulleCarPart extends MulleSprite {
           partId: partId,
           partData: partData,
 
-          junkView: game.mulle.getDirectorImage('CDDATA.CXT', partData.junkView),
-          UseView: game.mulle.getDirectorImage('CDDATA.CXT', partData.UseView),
-          UseView2: game.mulle.getDirectorImage('CDDATA.CXT', partData.UseView2),
+          junkView: game.mulle.getDirectorImage(partData.movie, partData.junkView),
+          UseView: game.mulle.getDirectorImage(partData.movie, partData.UseView),
+          UseView2: game.mulle.getDirectorImage(partData.movie, partData.UseView2),
 
           offset: partData.offset.clone()
 
