@@ -1,4 +1,5 @@
 import glob
+import json
 import os
 import platform
 import shutil
@@ -102,6 +103,21 @@ class Build:
         except subprocess.CalledProcessError as e:
             print('Output from score:', e.stderr.decode('utf-8'))
             raise e
+
+        # Credits
+        self.export_score('12.DXR')
+
+    def export_score(self, movie: str):
+        """
+        Export the score of a movie to dist/data/score/<movie>.json for scenes played from the score
+        """
+        from score.director_score import frames, markers
+
+        extract_folder = self.drxtract(os.path.join(self.movie_folder, movie))
+        output_folder = os.path.join(self.dist_folder, 'data', 'score')
+        os.makedirs(output_folder, exist_ok=True)
+        with open(os.path.join(output_folder, '%s.json' % movie), 'w') as fp:
+            json.dump({'markers': markers(extract_folder), 'frames': frames(extract_folder)}, fp)
 
     def phaser(self):
         folder = os.path.join(self.build_folder, 'phaser-ce')

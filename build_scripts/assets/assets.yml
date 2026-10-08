@@ -54,6 +54,15 @@ carshow:
         - [ 201, 209 ] # Speech
       opaque:
         - 200
+credits:
+  12.DXR:
+    Internal:
+      members:
+        - [ 21, 23 ] # Music and sounds
+        - [ 41, 59 ] # Background, credit pages, match and logos. The number of pages differs between languages
+      opaque:
+        - 41
+
 characters:
   00.CXT:
     Standalone:

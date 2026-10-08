@@ -39,6 +39,7 @@ import MulleAudio from 'objects/audio'
 
 import MulleSave from 'struct/savedata'
 import PluginState from './scenes/plugin'
+import CreditsState from './scenes/credits'
 import MudCarState from './scenes/mudcar'
 import DirectorHelper from './objects/DirectorHelper'
 
@@ -133,6 +134,7 @@ class MulleGame extends Phaser.Game {
       load: LoadState,
 
       menu: MenuState, // 10
+      credits: CreditsState, // 12
 
       junk: JunkState, // 02
       garage: GarageState, // 03

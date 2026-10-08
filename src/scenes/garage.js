@@ -482,7 +482,7 @@ class GarageState extends MulleState {
           this.toolbox.toggleToolbox(this.toolbox)
         },
         quit: () => {
-          this.game.state.start('menu')
+          this.game.state.start('credits')
         }
       }
 
