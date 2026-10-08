@@ -585,9 +585,20 @@ yard:
           source:
             - 261
             - 282
+  18.DXR:
+    Internal:
+      members:
+        - [ 8, 13 ] # World select window and arrows
+        - [ 27, 28 ] # Sign post and cancel
+        - 32 # Which way?
+  PLUGIN.CST:
+    Standalone:
+      members:
+        - 19 # Sign to the plugin world
   CDDATA.CXT:
     Standalone:
       members:
+        - 514 # Sign to Da Hood
         - [ 19, 22 ] # Letters
         - [ 24, 25 ] # Letter audio carshow/sturestortand
         - [ 29, 30 ]  # Letter audio Pia/race

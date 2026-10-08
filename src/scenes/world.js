@@ -304,12 +304,7 @@ class WorldState extends MulleState {
     // map objects
     this.mapObjects = this.game.add.group()
 
-    this.activeWorld = new MulleWorld(this.game, 'Da Hood') // this.game.mulle.WorldsDB["Da Hood"];
-    this.activeWorld.fromJSON(this.game.mulle.WorldsDB['Da Hood'])
-
-    this.activeWorld.calcRandomDestinations()
-
-    this.activeWorld.randomizeDestinations()
+    this.loadWorld(this.game.mulle.activeWorld || 'Da Hood')
 
     if (this.game.mulle.lastSession) {
       this.driveCar = new MulleDriveCar(this.game)

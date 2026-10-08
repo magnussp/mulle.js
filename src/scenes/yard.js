@@ -24,6 +24,7 @@ class YardState extends MulleState {
 
   create () {
     this.giftNote = null
+    this.worldSelect = null
     super.create()
     this.game.mulle.addAudio('yard')
     this.subtitles.load()
@@ -96,13 +97,26 @@ class YardState extends MulleState {
       var go_road = new MulleButton(this.game, 320, 240, {
         imageDefault: ['04.DXR', 16],
         click: (a) => {
-          this.game.mulle.activeCutscene = '00b008v0'
+          if (this.worldSelect) return
 
-          this.game.mulle.lastSession = null
+          const drive = (worldId) => {
+            this.game.mulle.activeWorld = worldId
+            this.game.mulle.activeCutscene = '00b008v0'
 
-          this.game.mulle.user.Car.resetCache()
+            this.game.mulle.lastSession = null
 
-          this.game.state.start('world')
+            this.game.mulle.user.Car.resetCache()
+
+            this.game.state.start('world')
+          }
+
+          // Choose a world when the plugin world is installed, like carClickBH
+          const worlds = Object.keys(this.game.mulle.WorldsDB)
+          if (worlds.length > 1) {
+            this.showWorldSelect(drive)
+          } else {
+            drive(worlds[0])
+          }
         }
       })
       this.game.add.existing(go_road)
@@ -264,6 +278,64 @@ class YardState extends MulleState {
       this.giftNote = null
       giftPackage.destroy()
     })
+  }
+
+  /**
+   * Window with a sign post where the world to drive to is chosen, like 18.DXR
+   * @param {function} onChoose Called with the id of the chosen world
+   */
+  showWorldSelect (onChoose) {
+    const m = '18.DXR'
+    const window = this.game.add.group()
+    window.position.set(109, 90)
+    this.worldSelect = window
+
+    // Block clicks on the yard behind the window
+    const blocker = this.game.add.graphics(-109, -90, window)
+    blocker.beginFill(0x000000, 0)
+    blocker.drawRect(0, 0, 640, 480)
+    blocker.endFill()
+    blocker.inputEnabled = true
+
+    const close = () => {
+      this.worldSelect = null
+      window.destroy()
+    }
+
+    const top = new MulleSprite(this.game, 211, 150)
+    top.setDirectorMember(m, 13)
+    window.add(top)
+
+    const post = new MulleSprite(this.game, 200, 150)
+    post.setDirectorMember(m, 27)
+    window.add(post)
+
+    for (const worldId in this.game.mulle.WorldsDB) {
+      const sign = new MulleSprite(this.game, 200, 150)
+      sign.setDirectorMember(this.game.mulle.WorldsDB[worldId].symbol)
+      sign.inputEnabled = true
+      sign.input.pixelPerfectClick = true
+      sign.input.useHandCursor = true
+      sign.events.onInputUp.addOnce(() => {
+        close()
+        onChoose(worldId)
+      })
+      window.add(sign)
+    }
+
+    const bottom = new MulleSprite(this.game, 211, 150)
+    bottom.setDirectorMember(m, 12)
+    window.add(bottom)
+
+    const cancel = new MulleSprite(this.game, 386, 251)
+    cancel.setDirectorMember(m, 28)
+    cancel.inputEnabled = true
+    cancel.input.useHandCursor = true
+    cancel.events.onInputUp.addOnce(close)
+    window.add(cancel)
+
+    // Which way?
+    this.game.mulle.playAudio('18d001v0')
   }
 
   /**
