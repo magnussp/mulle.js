@@ -8,6 +8,7 @@ import MulleCarPart from '../objects/carpart'
 import MulleJunkActor from '../objects/JunkActor'
 import DirectorHelper from '../objects/DirectorHelper'
 import SubtitleLoader from '../objects/SubtitleLoader'
+import MulleBuffa from '../objects/buffa'
 
 /* rects = [
 
@@ -39,8 +40,8 @@ class JunkState extends MulleState {
     this.pile_actors = {
       1: { mulle: { pos: [90, 309] } },
       2: { mulle: { pos: [86, 290] } },
-      3: { mulle: { pos: [90, 309] } },
-      4: { mulle: { pos: [561, 229] } },
+      3: { mulle: { pos: [99, 319] } },
+      4: { mulle: { pos: [561, 299] } },
       5: { mulle: { pos: [570, 270] } },
       6: { mulle: { pos: [520, 297] } }
     }
@@ -49,6 +50,9 @@ class JunkState extends MulleState {
     this.sortSounds = ["02d006v0", "02d007v0", "02d008v0"]
     this.shopFullSounds = ["02d009v0", "02d010v0", "02d011v0"]
     this.pileFullSounds = ["02d013v0", "02d014v0", "02d015v0"]
+
+    // maxParts in junkPileHandlers
+    this.maxParts = { pile: 50, shopFloor: 15 }
   }
 
   preload () {
@@ -77,7 +81,11 @@ class JunkState extends MulleState {
     this.game.mulle.user.save()
   }
 
-  setPile (num) {
+  /**
+   * @param {int} num Pile number
+   * @param {int} direction -1 when going left, 1 when going right, Buffa walks in from that side
+   */
+  setPile (num, direction = 0) {
     if (this.junkParts) {
       this.savePile()
       this.junkParts.destroy()
@@ -85,6 +93,7 @@ class JunkState extends MulleState {
     }
 
     this.currentPile = num
+    this.game.mulle.user.myLastPile = num
 
     var pile = this.piles[ this.currentPile ]
 
@@ -120,7 +129,7 @@ class JunkState extends MulleState {
       imageDefault: ['02.DXR', pile.right],
       imageHover: ['02.DXR', pile.right + 1],
       click: () => {
-        this.setPile(rightPile)
+        this.setPile(rightPile, 1)
       }
     })
     this.game.add.existing(this.arrowRight)
@@ -131,7 +140,7 @@ class JunkState extends MulleState {
       imageDefault: ['02.DXR', pile.left],
       imageHover: ['02.DXR', pile.left + 1],
       click: () => {
-        this.setPile(leftPile)
+        this.setPile(leftPile, -1)
       }
     })
 
@@ -151,6 +160,10 @@ class JunkState extends MulleState {
 
     const actor = this.pile_actors[this.currentPile]
 
+    if (this.game.mulle.actors.mulle) this.game.mulle.actors.mulle.destroy()
+    if (this.mulleBody) this.mulleBody.destroy()
+    if (this.buffa) this.buffa.destroy()
+
     this.game.mulle.actors.mulle = new MulleJunkActor(this.game, actor['mulle']['pos'][0], actor['mulle']['pos'][1], this.currentPile > 3 )
     this.game.add.existing(this.game.mulle.actors.mulle)
 
@@ -165,10 +178,24 @@ class JunkState extends MulleState {
     const mulle_body = new MulleSprite(this.game, actor['mulle']['pos'][0], actor['mulle']['pos'][1], key, frame)
     mulle_body.setDirectorMember('02.DXR', member)
     this.game.add.existing(mulle_body)
+    this.mulleBody = mulle_body
+
+    // Mulle thinks about sorting when the pile is almost full, like PileBH
+    const pileCount = Object.keys(this.game.mulle.user.Junk['Pile' + this.currentPile] || {}).length
+    this.randomSounds = this.maxParts.pile <= pileCount + 20 ? this.sortSounds : this.thoughtSounds
+
+    // Buffa walks in from the side when changing pile, like changePile in BuffaBH
+    this.buffa = new MulleBuffa(this.game, 303, 377, 'junk')
+    if (direction === -1) {
+      this.buffa.x = 640 - 140
+      this.buffa.setAction('WalkLeftStart')
+    } else if (direction === 1) {
+      this.buffa.x = 140
+      this.buffa.setAction('WalkRightStart')
+    }
+    this.game.add.existing(this.buffa)
 
 
-    /*this.buffaActor = new MulleActor(this.game, 320, 222, 'buffa')
-    this.game.add.existing(this.buffaActor)*/
 
     /*
     this.junkPile = this.game.mulle.user.Junk['Pile' + this.currentPile]
@@ -203,6 +230,11 @@ class JunkState extends MulleState {
 
       // door
       p.dropTargets.push([this.doorShop, (d) => {
+        if (Object.keys(this.game.mulle.user.Junk.shopFloor).length >= this.maxParts.shopFloor) {
+          this.mulleSpeak(this.shopFullSounds)
+          return false
+        }
+
         d.destroy()
 
         this.game.mulle.user.Junk.shopFloor[partId] = { x: this.game.rnd.integerInRange(0, 640), y: 240 }
@@ -216,6 +248,8 @@ class JunkState extends MulleState {
 
       // arrow left
       p.dropTargets.push([this.arrowLeft, (d) => {
+        if (this.isPileFull(leftPile)) return false
+
         d.destroy()
 
         this.game.mulle.user.Junk['Pile' + leftPile][partId] = {
@@ -232,6 +266,8 @@ class JunkState extends MulleState {
 
       // arrow right
       p.dropTargets.push([this.arrowRight, (d) => {
+        if (this.isPileFull(rightPile)) return false
+
         d.destroy()
 
         this.game.mulle.user.Junk['Pile' + rightPile][partId] = {
@@ -255,6 +291,31 @@ class JunkState extends MulleState {
     */
   }
 
+  /**
+   * Make Mulle say one of the sounds unless he is already talking
+   * @param {string[]} sounds
+   */
+  mulleSpeak (sounds) {
+    const mulle = this.game.mulle.actors.mulle
+    if (!mulle || mulle.isTalking) return
+    mulle.talkAnimation = this.game.rnd.pick(['talk', 'talkPlayer'])
+    mulle.talk(this.game.rnd.pick(sounds))
+  }
+
+  /**
+   * Check if a pile can take one more part, Mulle complains if it can not
+   * @param {int} pile
+   * @return {boolean}
+   */
+  isPileFull (pile) {
+    const count = Object.keys(this.game.mulle.user.Junk['Pile' + pile] || {}).length
+    if (this.maxParts.pile <= count + 1) {
+      this.mulleSpeak(this.pileFullSounds)
+      return true
+    }
+    return false
+  }
+
   create () {
     super.create()
 
@@ -266,8 +327,17 @@ class JunkState extends MulleState {
 
     this.junkPile = null
     this.junkParts = null
+    this.mulleBody = null
+    this.buffa = null
+    this.game.mulle.actors.mulle = null
 
-    this.setPile(1)
+    // Start at the pile visited last time
+    this.setPile(this.game.mulle.user.myLastPile || 1)
+
+    // Mulle thinks aloud now and then, like MulleJunkBH
+    this.game.time.events.loop(1000 / 12, () => {
+      if (this.game.rnd.integerInRange(1, 250) === 1) this.mulleSpeak(this.randomSounds)
+    })
 
     this.game.mulle.addAudio('junk')
     //this.subtitles.load()

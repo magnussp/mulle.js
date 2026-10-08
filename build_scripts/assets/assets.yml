@@ -46,7 +46,7 @@ characters:
   00.CXT:
     Standalone:
       members:
-        - [ 214, 227 ] # Buffa
+        - [ 174, 227 ] # Buffa, BuffaAnimChart frames
         - [ 245, 263 ] # Car
         - [ 271, 302 ] # Car
 
