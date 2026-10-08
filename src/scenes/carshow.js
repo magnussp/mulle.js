@@ -6,11 +6,20 @@ import MulleSprite from '../objects/sprite'
 import MulleBuildCar from '../objects/buildcar'
 import MulleActor from '../objects/actor'
 
+/**
+ * Car show
+ * 94.DXR
+ *
+ * The judge rates how funny the car is, a very funny car gets a medal.
+ * Positions and timings are taken from the score of the original movie.
+ *
+ * 94d003v0: Welcome
+ * 94d004v0 - 94d008v0: Rating 5 to 1
+ * 94d009v0: Mulle got a medal
+ */
 class CarShowState extends MulleState {
   preload () {
     super.preload()
-
-    // game.load.pack('04.DXR', 'assets/04.DXR/pack.json', null, this);
 
     this.game.load.pack('carshow', 'assets/carshow.json', null, this)
   }
@@ -18,45 +27,57 @@ class CarShowState extends MulleState {
   create () {
     super.create()
 
+    this.DirResource = '94.DXR'
+    this.frameTime = 1000 / 12
     this.car = null
+    this.leaving = false
 
     this.game.mulle.addAudio('carshow')
 
-    var background = new MulleSprite(this.game, 320, 240)
-    background.setDirectorMember('94.DXR', 200)
+    const background = new MulleSprite(this.game, 320, 240)
+    background.setDirectorMember(this.DirResource, 200)
     this.game.add.existing(background)
 
-    var judge = new MulleActor(this.game, 155, 210, 'judge')
-    judge.talkAnimation = 'talk'
-    judge.silenceAnimation = 'idle'
-    this.game.add.existing(judge)
-    this.game.mulle.actors.judge = judge
+    this.judge = this.addJudge()
 
-    var score = new MulleSprite(this.game, 177, 93)
-    score.setDirectorMember('94.DXR', 17)
-    this.game.add.existing(score)
-    score.visible = false
+    this.score = new MulleSprite(this.game, 177, 93)
+    this.score.setDirectorMember(this.DirResource, 17)
+    this.game.add.existing(this.score)
+    this.score.visible = false
 
-    var mulle = new MulleActor(this.game, 89, 337, 'mulleDefault')
+    const b = '00.CXT'
+    const mulle = new MulleActor(this.game, 89, 337, 'mulleDefault')
     mulle.talkAnimation = 'talkRegular'
     mulle.silenceAnimation = 'idle'
+    // MulleTurnAnimChart, Mulle turns to look at the judge
+    const turn = []
+    for (let i = 0; i < 13; i++) turn.push([b, 271])
+    for (let i = 0; i < 4; i++) turn.push([b, 283])
+    mulle.addAnimation('turn', turn, 12, false)
     this.game.add.existing(mulle)
     this.game.mulle.actors.mulle = mulle
-
-    mulle.animations.play('lookLeft')
+    this.mulle = mulle
 
     this.car = new MulleBuildCar(this.game, 321, 288, null, true, false)
     this.game.add.existing(this.car)
 
     this.game.mulle.playAudio('94e001v0')
 
-    // begin
+    if (!this.game.mulle.SetWhenDone) {
+      this.game.mulle.SetWhenDone = {
+        Medals: [4],
+        Cache: ['#Exhibition'],
+        Missions: [2]
+      }
+    }
 
-    const medal = this.game.mulle.SetWhenDone.Medals[0]
-    var funnyFactor = this.game.mulle.user.Car.getProperty('funnyfactor', 0)
+    // Like init in the Dir script of 94.DXR
+    const medalId = this.game.mulle.SetWhenDone.Medals[0]
+    this.game.mulle.user.Car.addCache(this.game.mulle.SetWhenDone.Cache[0])
+    this.game.mulle.user.addCompletedMission(this.game.mulle.SetWhenDone.Missions[0])
+    const funnyFactor = this.game.mulle.user.Car.getProperty('funnyfactor', 0)
 
-    var rating
-
+    let rating
     if (funnyFactor < 2) {
       rating = 1
     } else if (funnyFactor < 3) {
@@ -69,60 +90,101 @@ class CarShowState extends MulleState {
       rating = 5
     }
 
-    // 94d003v0 - welcome
-    // 94d004v0 - 5
-    // 94d005v0 - 4
-    // 94d006v0 - 3
-    // 94d007v0 - 2
-    // 94d008v0 - 1
-    // 94d009v0 - medalj
+    const medal = funnyFactor > 8 && !this.game.mulle.user.Car.hasMedal(medalId)
+    if (medal) this.game.mulle.user.Car.addMedal(medalId)
 
-    var scoreTalk = { 1: '94d008v0', 2: '94d007v0', 3: '94d006v0', 4: '94d005v0', 5: '94d004v0' }
+    console.log('funnyfactor', funnyFactor, rating, medal)
 
-    console.log('funnyfactor', funnyFactor, rating)
+    const scoreTalk = { 1: '94d008v0', 2: '94d007v0', 3: '94d006v0', 4: '94d005v0', 5: '94d004v0' }
 
-    judge.displayScore = () => {
-      judge.talkAnimation = 'talkScore'
+    // Welcome to the car show
+    this.judge.talk('94d003v0', () => {
+      mulle.animations.play('turn').onComplete.addOnce(() => {
+        mulle.setDirectorMember(b, 283)
 
-      console.log('display score')
+        // The judge raises the sign with the rating
+        this.judge.animations.play('up').onComplete.addOnce(() => {
+          this.score.setDirectorMember(this.DirResource, 17 + rating - 1)
+          this.score.visible = true
 
-      // display score
-      score.setDirectorMember('94.DXR', 17 + (rating - 1))
-      score.visible = true
-
-      // say score
-      judge.talk(scoreTalk[ rating ], () => {
-        // end
-        console.log('end')
-        this.game.state.start('world')
+          this.judge.talkAnimation = 'talkUp'
+          this.judge.silenceAnimation = 'stillUp'
+          // Wait until the actor has played its idle animation after talking
+          this.judge.talk(scoreTalk[rating], () => this.game.time.events.add(0, () => {
+            this.score.visible = false
+            this.judge.animations.play('down').onComplete.addOnce(() => {
+              this.judge.setDirectorMember(this.DirResource, 31)
+              if (medal) {
+                this.medal()
+              } else {
+                this.leave()
+              }
+            })
+          }))
+        })
       })
-
-      if (funnyFactor > 8 && !this.game.mulle.user.Car.hasMedal(medal)) {
-        this.game.mulle.user.Car.addMedal(medal)
-      }
-    }
-
-    // intro
-    judge.talkAnimation = 'talk'
-    judge.talk('94d003v0', () => {
-      console.log('raise score')
-
-      // show score
-      setTimeout(() => {
-        judge.animations.play('raiseScore')
-      }, 500)
     })
-
-    // ;
 
     console.log('Car show')
   }
 
+  /**
+   * The judge with JudgeAnimChart and JudgeUpAnimChart
+   * @return {MulleActor}
+   */
+  addJudge () {
+    const m = this.DirResource
+    const frames = (list) => list.map(f => [m, 31 + f - 1])
+    const judge = new MulleActor(this.game, 155, 210, 'judge')
+    judge.addAnimation('talkWelcome', frames([13, 14, 13, 13, 15, 15, 16, 13, 17]), 12, true)
+    judge.addAnimation('up', frames([1, 2, 3, 4, 5, 6, 7]), 12, false)
+    judge.addAnimation('stillUp', frames([7]), 12, false)
+    judge.addAnimation('talkUp', frames([8, 9, 10, 9, 11]), 12, true)
+    judge.addAnimation('down', frames([7, 6, 5, 4, 3, 2, 1]), 12, false)
+    judge.talkAnimation = 'talkWelcome'
+    judge.silenceAnimation = 'idle'
+    this.game.add.existing(judge)
+    this.game.mulle.actors.judge = judge
+    return judge
+  }
+
+  /**
+   * Mulle got a medal, it blinks while it is put on the car
+   */
+  medal () {
+    this.mulle.talk('94d009v0', () => {
+      const thing = new MulleSprite(this.game, 600, 444)
+      thing.setDirectorMember(this.DirResource, 61)
+      this.game.add.existing(thing)
+
+      // ThingAnimChart blink
+      const frames = [2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2]
+      let i = 0
+      const blink = this.game.time.events.loop(this.frameTime, () => {
+        thing.setDirectorMember(this.DirResource, 60 + frames[i++ % frames.length])
+      })
+      this.game.mulle.playAudio('00e028v0', () => {
+        this.game.time.events.remove(blink)
+        this.leave()
+      })
+    })
+  }
+
+  leave () {
+    if (this.leaving) return
+    this.leaving = true
+    this.game.state.start('world')
+  }
+
   shutdown () {
     this.game.mulle.stopAudio('94e001v0')
+    if (this.mulle) this.mulle.resetTalk()
+    if (this.judge) this.judge.resetTalk()
 
     this.game.mulle.actors.mulle = null
     this.game.mulle.actors.judge = null
+
+    super.shutdown()
   }
 }
 

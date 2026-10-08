@@ -49,6 +49,7 @@ carshow:
       members:
         - [ 17, 21 ] # Numbers
         - [ 31, 47 ] # Judge animation
+        - [ 61, 62 ] # Medal
         - 185 # Background sounds
         - 200 # Background image
         - [ 201, 209 ] # Speech
