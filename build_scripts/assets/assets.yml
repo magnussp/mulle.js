@@ -104,6 +104,7 @@ diploma:
         text:
           source: 69
           en: 87
+          other: 87
 
 dorisdigital:
   90.DXR:
@@ -139,13 +140,22 @@ driving:
         menu:
           source: 53
           en: 321
+          fi: 321
+          nl: 321
         engine:
           source: [ 294, 369 ]
-          nl: [ 238, 289 ]
           en: [ 238, 313 ]
+          fi: [ 238, 313 ]
+          nl: [ 238, 313 ]
         voices:
           source: [ 233,249 ]
           en: [ 325, 341 ]
+          fi: [ 325, 341 ]
+          nl: [ 325, 341 ]
+        horns:
+          source: [ 269, 275 ]
+          fi: [ 225, 231 ]
+          nl: [ 225, 231 ]
   CDDATA.CXT:
     Standalone:
       members:
@@ -379,6 +389,10 @@ menu:
           source: 92
           other: 314
 
+        intro:
+          source: 300
+          da: 310
+
 
 mudcar:
   82.DXR:
@@ -547,6 +561,10 @@ solhem:
         - [ 30, 74 ]
         - [ 181, 185 ]
         - [ 200, 206 ]
+      translations:
+        speech:
+          source: 206
+          fi: 207
       opaque:
         - 1
 
