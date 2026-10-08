@@ -1,7 +1,7 @@
 import MulleState from './base'
 
 import MulleSprite from '../objects/sprite'
-// import MulleBuildCar from '../objects/buildcar'
+import MulleBuildCar from '../objects/buildcar'
 import MulleActor from '../objects/actor'
 import blinkThing from '../util/blinkThing'
 import SubtitleLoader from '../objects/SubtitleLoader'
@@ -27,6 +27,13 @@ class FiggeFerrumState extends MulleState {
     background.setDirectorMember('92.DXR', 1)
     this.game.add.existing(background)
 
+    // Like the Dir script of 92.DXR: Salka brought back now, or the mission is already done
+    const hasDog = this.game.mulle.user.Car.hasCache('#Dog')
+    if (!hasDog && this.game.mulle.user.isMissionCompleted(1)) {
+      this.done()
+      return
+    }
+
     var mulle = new MulleActor(this.game, 95, 300, 'mulleDefault')
     mulle.animations.play('idle')
     mulle.talkAnimation = 'talkRegular'
@@ -39,8 +46,8 @@ class FiggeFerrumState extends MulleState {
     this.game.add.existing(buffa)
     this.game.mulle.actors.buffa = buffa
 
-    // this.car = new MulleBuildCar(this.game, 368, 240, null, true, true);
-    // this.game.add.existing(this.car);
+    this.car = new MulleBuildCar(this.game, 448, 333, null, true, false)
+    this.game.add.existing(this.car)
 
     var figgeBody = new MulleSprite(this.game, 102, 292)
     figgeBody.setDirectorMember('92.DXR', 16)
@@ -64,20 +71,14 @@ class FiggeFerrumState extends MulleState {
 
     this.game.mulle.playAudio('92e002v0')
 
-    if (this.game.mulle.user.Car.hasCache('#ExtraTank')) {
-      // 92d007v0 - mulle intro talk
-      this.game.mulle.actors.mulle.talk('92d007v0', () => {
-        this.game.state.start('world')
-      })
-
-      return
-    }
-
     console.log('last session', this.game.mulle.lastSession)
 
     // 92d002v0 - nu har en salka sprungit
-    this.game.mulle.actors.figge.talk('92d002v0', () => {
-      if (this.game.mulle.user.Car.hasCache('#Dog')) {
+    const ask = () => this.game.mulle.actors.figge.talk('92d002v0', () => {
+      if (hasDog) {
+        this.game.mulle.user.addCompletedMission(1)
+        this.game.mulle.user.Car.removeCache('#Dog')
+
         // 92d004v0 - jo visst
         this.game.mulle.actors.mulle.talk('92d004v0', () => {
           var salka = new MulleActor(this.game, 200, 363, 'salkaLeft')
@@ -94,7 +95,10 @@ class FiggeFerrumState extends MulleState {
             this.game.mulle.actors.mulle.talk('92d006v0', () => {
               this.game.mulle.user.Car.addCache('#ExtraTank')
 
-              this.game.mulle.lastSession.carFuel = this.game.mulle.lastSession.carMaxFuel
+              if (this.game.mulle.lastSession) {
+                // Full tank, including the extra tank
+                this.game.mulle.lastSession.carFuel = this.game.mulle.lastSession.carMaxFuel * 1.2
+              }
 
               new blinkThing(this.game, gas, () => {this.game.state.start('world')}, this)
             })
@@ -106,6 +110,30 @@ class FiggeFerrumState extends MulleState {
           this.game.state.start('world')
         })
       }
+    })
+
+    if (hasDog) {
+      ask()
+    } else {
+      // 92d001v0 - intro by the narrator
+      this.game.mulle.playAudio('92d001v0', ask)
+    }
+  }
+
+  /**
+   * Salka has already been brought back, Mulle comments from the car and waves
+   */
+  done () {
+    this.game.mulle.playAudio('92e002v0')
+    this.car = new MulleBuildCar(this.game, 448, 333, null, true, true)
+    this.game.add.existing(this.car)
+
+    // 92d007v0 - mulle intro talk
+    this.car.mulleSit.talk('92d007v0', () => {
+      this.car.mulleSit.animations.play('wave')
+      this.game.time.events.add(14 * 1000 / 12, () => {
+        this.game.state.start('world')
+      })
     })
   }
 

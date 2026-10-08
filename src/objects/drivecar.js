@@ -140,7 +140,8 @@ class MulleDriveCar extends MulleSprite {
     this.setEngineSound()
 
     // fuel
-    this.fuelMax = this.getQuickProperty('fuelvolume')
+    // The extra tank from Figge Ferrum holds 20% more, like fillErUp in 05.DXR
+    this.fuelMax = this.getQuickProperty('fuelvolume') * (this.game.mulle.user.Car.hasCache('#ExtraTank') ? 1.2 : 1)
     this.fuelCurrent = this.fuelMax * 0.8
 
     // console.log('fuel max', this.fuelMax);
