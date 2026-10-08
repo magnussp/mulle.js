@@ -513,6 +513,7 @@ sturestortand:
       members:
         - [ 16, 25 ] # Hose animation
         - [ 32, 46 ] # Sture and background
+        - [ 52, 84 ] # Mulle facing left, MulleAnimChart
         - [ 92, 93 ] # Kids 1
         - [ 96, 97 ] # Kids 2
         - [ 100, 101 ] # Kids 3
