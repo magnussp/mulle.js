@@ -73,10 +73,37 @@ class AlbumState extends MulleState {
    * @param page
    */
   setPage (page) {
+    if (this.selectedPage !== undefined && this.selectedPage !== page) {
+      this.game.mulle.playAudio('06e003v0')
+    }
+    this.saveName()
     this.selectedPage = page
-    this.game.mulle.playAudio('06e003v0')
     this.showSavedCar(page)
     this.buildPages()
+  }
+
+  /**
+   * The name of a pasted car is saved when changing page or closing the album,
+   * like saveIfNecessary in the Dir script of 06.DXR
+   */
+  saveName () {
+    if (this.namePage === undefined || this.namePage === null) return
+    const name = this.carName.value()
+    this.loadSave.setName(this.namePage, name)
+    if (this.namePageIsCurrentCar) this.game.mulle.user.Car.Name = name
+    this.namePage = null
+  }
+
+  /**
+   * First page to show, the first free page when saving
+   * @return {int}
+   */
+  startPage () {
+    if (this.mode !== 'save') return 1
+    for (let page = 1; page <= 12; page++) {
+      if (!this.loadSave.isSaved(page)) return page
+    }
+    return 1
   }
 
   /**
@@ -112,13 +139,68 @@ class AlbumState extends MulleState {
    * Paste a car in the album
    */
   pasteCar () {
+    if (this.confirmDialog) return
+    if (this.loadSave.isSaved(this.selectedPage)) {
+      this.confirmOverwrite(() => this.doPasteCar())
+    } else {
+      this.doPasteCar()
+    }
+  }
+
+  doPasteCar () {
     this.imageFrame.destroy()
     this.imageFrame.displaySprite.visible = false
     this.pasting_car.destroy()
     this.albumCar()
-    this.game.mulle.user.Car.Name = this.carName.value()
+    this.showMedals(this.game.mulle.user.Car.Medals)
 
+    this.game.mulle.playAudio('06e001v0', () => this.game.mulle.playAudio('06d002v0'))
+
+    // Write the name, it is saved when changing page or closing the album
+    this.carName.text('')
     this.loadSave.saveCurrentCar(this.selectedPage)
+    this.loadSave.setName(this.selectedPage, '')
+    this.namePage = this.selectedPage
+    this.namePageIsCurrentCar = true
+    this.buildPages()
+  }
+
+  /**
+   * Ask before a saved car is replaced, like ReplaceScript in 06.DXR
+   * @param {function} onYes
+   */
+  confirmOverwrite (onYes) {
+    const dialog = this.game.add.group()
+    this.confirmDialog = dialog
+    const background = new MulleSprite(this.game, 528, 437)
+    background.setDirectorMember(this.DirResource, 160)
+    dialog.add(background)
+
+    const close = () => {
+      dialog.destroy()
+      this.confirmDialog = null
+    }
+    const yes = MulleButton.fromRectangle(this.game, 469, 433, 55, 31, { click: () => { close(); onYes() } })
+    const no = MulleButton.fromRectangle(this.game, 530, 432, 55, 31, { click: close })
+    dialog.add(yes)
+    dialog.add(no)
+
+    this.game.mulle.playAudio('06d004v0')
+  }
+
+  /**
+   * Download the car on the page as a file in the format of the original game
+   */
+  exportCar () {
+    if (!this.loadSave.isSaved(this.selectedPage)) return
+    this.saveName()
+    const [, , name] = this.loadSave.loadCar(this.selectedPage)
+    const blob = new Blob([this.loadSave.exportCar(this.selectedPage)], { type: 'text/plain' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = (name || 'mulle') + '.car'
+    link.click()
+    URL.revokeObjectURL(link.href)
   }
 
   /**
@@ -127,16 +209,18 @@ class AlbumState extends MulleState {
    */
   buildSavedCar (page) {
     let partId
-    const [parts, medals, name] = this.loadSave.loadCar(page)
-    // Place redundant parts in the junk yard
+    const [parts, medals, name, cacheList] = this.loadSave.loadCar(page)
+    const savedParts = parts.map(String)
+    // Place parts of the old car that are not used in a random junk pile, like trash()
+    const pile = 'Pile' + this.game.rnd.integerInRange(1, 6)
     for (partId of this.game.mulle.user.Car.Parts) {
-      if (!(partId in parts)) {
+      if (!savedParts.includes(String(partId))) {
         if (this.game.mulle.PartsDB[partId].master) { // Un-morph parts
           partId = this.game.mulle.PartsDB[partId].master
         }
 
         // Place the part in the junk yard
-        this.game.mulle.user.addPart('Pile1', partId, null, true)
+        this.game.mulle.user.addPart(pile, partId, null, true)
       }
     }
 
@@ -145,8 +229,9 @@ class AlbumState extends MulleState {
     for (partId of parts) {
       this.game.mulle.user.Car.Parts.push(partId)
     }
-    this.game.mulle.user.Car.Medals = medals
+    this.game.mulle.user.Car.Medals = [...medals]
     this.game.mulle.user.Car.Name = name
+    this.game.mulle.user.Car.CacheList = [...cacheList]
     this.game.mulle.user.Car.updateStats()
     this.close()
   }
@@ -208,12 +293,12 @@ class AlbumState extends MulleState {
   showMedals (medals) {
     if (this.medals) { this.medals.destroy(true) }
     this.medals = this.game.add.group()
-    let count = 1
+    // Medal images in the same order as MedalBH in 05.DXR
+    const members = [21, 22, 23, 24, 27, 26]
     for (const medal of medals) {
-      const { key, frame } = this.game.mulle.getDirectorImage(this.DirResource, 20 + medal)
-      const sprite = new Phaser.Sprite(this.game, 550, 55 * count, key, frame.name)
+      const sprite = new MulleSprite(this.game, 570, 65 + 62 * (medal - 1))
+      sprite.setDirectorMember(this.DirResource, members[medal - 1])
       this.medals.add(sprite)
-      count++
     }
   }
 
@@ -243,14 +328,13 @@ class AlbumState extends MulleState {
 
       this.export_button = new MulleButton(this.game, 487, 413, {
         imageDefault: ['06.DXR', 164],
-        click: () => {
-          console.warn('Export car not implemented')
-        }
+        click: () => this.exportCar()
       })
 
       this.game.add.existing(this.export_button)
     } else { // Show picture
-      this.game.mulle.playAudio('07d001v0')
+      // The album is empty
+      this.game.mulle.playAudio(this.loadSave.count() ? '07d001v0' : '07d003v0')
 
       this.fetchButton = new MulleButton(this.game, 76, 400, {
         imageDefault: [this.DirResource, 162],
@@ -280,15 +364,34 @@ class AlbumState extends MulleState {
     })
 
     this.album_ui.add(this.close_button)
-    this.setPage(1)
+
+    // Mulle explains the photo after 15 frames over it
+    const photo = this.mode === 'save' ? this.imageFrame : this.fetchButton
+    let hoverTimer = null
+    photo.events.onInputOver.add(() => {
+      hoverTimer = this.game.time.events.add(15 * 1000 / 12, () => {
+        this.game.mulle.playAudio(this.mode === 'save' ? '06d007v0' : '07d005v0')
+      })
+    })
+    photo.events.onInputOut.add(() => {
+      if (hoverTimer) this.game.time.events.remove(hoverTimer)
+    })
+    photo.events.onInputDown.add(() => {
+      if (hoverTimer) this.game.time.events.remove(hoverTimer)
+    })
+
+    this.setPage(this.startPage())
   }
 
   close () {
+    this.saveName()
+    this.game.mulle.playAudio('06e003v0')
     this.game.state.start('garage')
   }
 
   shutdown (game) {
-    this.cutscene = 83
+    // The state is reused, a cutscene from this visit must not be destroyed again next time
+    this.cutscene = null
     this.carName.remove()
     super.shutdown(game)
   }

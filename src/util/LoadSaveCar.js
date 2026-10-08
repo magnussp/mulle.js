@@ -24,15 +24,27 @@ class LoadSaveCar {
   }
 
   /**
+   * Make a car file in the format of the original game
+   * @param {int} page Album page
+   * @return {string}
+   */
+  exportCar (page) {
+    const [parts, medals, name, cacheList] = this.loadCar(page)
+    const cache = cacheList.length ? '[' + cacheList.map(c => c + ': 1').join(', ') + ']' : '[:]'
+    return `[#parts: [${parts.join(', ')}], #name: "${name.replace(/"/g, '')}", #medals: [${medals.join(', ')}], #cacheList: ${cache}]`
+  }
+
+  /**
    * Save a car
    * @param {int} page Album page to save the car
    * @param {array} parts Parts on car
    * @param {array} medals Car medals
    * @param {string} name Car name
+   * @param {array} cacheList Things the car has done, like #ExtraTank
    */
-  saveCar (page, parts, medals, name = '') {
+  saveCar (page, parts, medals, name = '', cacheList = []) {
     console.log(`Save car to page ${page}`)
-    this.game.mulle.user.savedCars[page] = { parts: parts, medals: medals, name: name }
+    this.game.mulle.user.savedCars[page] = { parts: [...parts], medals: [...medals], name, cacheList: [...cacheList] }
     this.game.mulle.user.save()
   }
 
@@ -44,7 +56,19 @@ class LoadSaveCar {
     this.saveCar(page,
       this.game.mulle.user.Car.Parts,
       this.game.mulle.user.Car.Medals,
-      this.game.mulle.user.Car.Name)
+      this.game.mulle.user.Car.Name,
+      this.game.mulle.user.Car.CacheList)
+  }
+
+  /**
+   * Set the name of a saved car
+   * @param {int} page
+   * @param {string} name
+   */
+  setName (page, name) {
+    if (!this.isSaved(page)) return
+    this.game.mulle.user.savedCars[page].name = name
+    this.game.mulle.user.save()
   }
 
   loadCar (page) {
@@ -55,8 +79,8 @@ class LoadSaveCar {
       this.saveCar(page, this.game.mulle.user.savedCars[page], [])
     }
 
-    const { parts, medals, name } = this.game.mulle.user.savedCars[page]
-    return [parts, medals, name]
+    const { parts, medals, name, cacheList } = this.game.mulle.user.savedCars[page]
+    return [parts, medals, name || '', cacheList || []]
   }
 
   /**
@@ -65,8 +89,9 @@ class LoadSaveCar {
    * @param {string} carDataString String content from an exported car file
    */
   importCar (page, carDataString) {
-    const { parts, name, medals } = LoadSaveCar.parseOriginalGame(carDataString)
-    this.saveCar(page, parts, medals, name)
+    const { parts, name, medals, cacheList } = LoadSaveCar.parseOriginalGame(carDataString)
+    const cache = cacheList && !Array.isArray(cacheList) ? Object.keys(cacheList).map(c => '#' + c.replace(/^#/, '')) : []
+    this.saveCar(page, parts, medals, name, cache)
   }
 
   /**
@@ -75,7 +100,19 @@ class LoadSaveCar {
    * @return {boolean}
    */
   isSaved (page) {
-    return page in this.game.mulle.user.savedCars
+    return !!this.game.mulle.user.savedCars[page]
+  }
+
+  /**
+   * Number of saved cars
+   * @return {int}
+   */
+  count () {
+    let count = 0
+    for (let page = 1; page <= 12; page++) {
+      if (this.isSaved(page)) count++
+    }
+    return count
   }
 }
 
