@@ -9,3 +9,4 @@ cst_out_new/
 *.pyc
 /bin
 iso
+/assets_*/

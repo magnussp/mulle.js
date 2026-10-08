@@ -4,6 +4,57 @@ Mulle.js is an attempt to recreate a wonderful game from the past and bring it t
 
 You need to own the original release of Mulle Meck Bygger Bilar to use Mulle.js.
 
+## Docker
+The easiest way to build and run the game is with Docker Compose. The image extracts the game from the ISO, builds all assets and serves the game with Apache.
+
+### Game files
+Put the ISO of the game and `plugin.exe` (the plugin with extra parts and the crane game) in the `iso` folder:
+```
+iso/mullebil_sv.iso
+iso/plugin.exe
+```
+The ISO must be named `mullebil_<language>.iso`. Supported languages are `sv`, `no`, `da`, `fi` and `nl`.
+
+The build script can fetch both files from archive.org for you, it only needs `requests` and `pyyaml`:
+```
+pip3 install requests pyyaml
+python3 build_scripts/build.py sv download-only
+```
+
+### Build and run
+```
+docker compose up --build
+```
+The game is then available at http://localhost:8080/ and the multiplayer server at ws://localhost:8765.
+
+The first build takes a while since all assets are extracted and converted. Later builds reuse the Docker cache unless the build scripts or the game files change.
+
+### Settings
+Settings are given as environment variables or in a `.env` file next to `docker-compose.yml`:
+
+| Variable         | Default               | Description                                                                                 |
+|------------------|-----------------------|---------------------------------------------------------------------------------------------|
+| `GAME_LANG`      | `sv`                  | Game language, selects `mullebil_<language>.iso`                                            |
+| `ISO_DIR`        | `./iso`               | Folder with the ISO and `plugin.exe`, can be outside the project                            |
+| `WEB_PORT`       | `8080`                | Port for the game on the host                                                               |
+| `SERVER_ADDRESS` | `ws://localhost:8765` | Multiplayer server used by the browser. It is built into the game, so rebuild after a change |
+
+Example, the Norwegian version with the ISO in another folder:
+```
+GAME_LANG=no ISO_DIR=~/Downloads/mulle docker compose up --build
+```
+
+Use `SERVER_ADDRESS=wss://server.mulle.datagutten.net` to play against the public server, then the `server` service is not needed:
+```
+SERVER_ADDRESS=wss://server.mulle.datagutten.net docker compose up --build web
+```
+
+### Without Compose
+```
+docker build -t mulle-js --build-arg GAME_LANG=sv .
+docker run -p 8080:80 mulle-js
+```
+
 ## Linux
 Install dependencies
 * **Arch Linux:** `sudo pacman -S python python-pip ffmpeg imagemagick nodejs npm`
