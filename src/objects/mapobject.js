@@ -151,6 +151,10 @@ class MulleMapObject extends MulleSprite {
     }
   }
 
+  isDestination () {
+    return this.def.type === '#dest' || this.def.type === '#rdest'
+  }
+
   onEnterOuter (car) {
     if (this.custom && this.custom.onEnterOuter) {
       this.custom.onEnterOuter.call(this, car)
@@ -171,7 +175,9 @@ class MulleMapObject extends MulleSprite {
       return
     }
 
-    if (this.def.type === '#dest' || this.def.type === '#rdest') {
+    if (this.isDestination()) {
+      // Remember visited destinations, like setUserProp(#Visited & DirResource) in the Destination script
+      this.game.mulle.user.addStuff('#Visited' + this.def.DirResource)
       car.enabled = false
       car.engineAudio.stop()
       // car.engineAudio = null;

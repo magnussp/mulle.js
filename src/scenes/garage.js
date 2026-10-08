@@ -50,78 +50,121 @@ class GarageState extends MulleState {
     return false
   }
 
+  /**
+   * Figge visits the garage with parts, like checkFigge and FiggeShopBH in 03.DXR.
+   * A click interrupts the visit, Figge then says goodbye and leaves.
+   */
   figge () {
-    this.game.mulle.user.calculateParts()
+    const b = '03.DXR'
+    const visit = { sounds: [], figge: null, interrupted: false, partsGiven: false, leaving: false }
 
-    // var tmpList = .splice(0);
-
-    /*
-    if (tmpList.length <= 3) {
-
-      tmpNewParts = tmpList.splice(0)
-
-      return
+    const play = (id, onStop) => {
+      const sound = this.game.mulle.playAudio(id, () => { if (!visit.interrupted) onStop() })
+      if (sound) visit.sounds.push(sound)
     }
-    */
 
-    // car
-    this.game.mulle.playAudio('03e009v0', () => {
+    const giveParts = () => {
+      if (visit.partsGiven) return
+      visit.partsGiven = true
+      this.figgeGiveParts()
+    }
+
+    // Other input is blocked during the visit, a click interrupts it
+    const blocker = this.game.add.graphics(0, 0)
+    blocker.beginFill(0x000000, 0)
+    blocker.drawRect(0, 0, 640, 480)
+    blocker.endFill()
+    blocker.inputEnabled = true
+    blocker.input.priorityID = 1000
+
+    const leave = () => {
+      if (visit.leaving) return
+      visit.leaving = true
+      const figge = visit.figge
+      const close = () => {
+        if (figge) figge.destroy()
+        this.game.mulle.actors.figge = null
+        this.door_junk.onInputOutHandler()
+        // door, then the truck drives away
+        this.game.mulle.playAudio('02e015v0', () => {
+          this.game.mulle.playAudio('03e010v0')
+          blocker.destroy()
+        })
+      }
+      if (figge) {
+        figge.animations.play('goOut').onComplete.addOnce(close)
+      } else {
+        close()
+      }
+    }
+
+    const bye = () => {
+      // jajamänsan
+      visit.figge.talk('03d046v0', () => leave())
+    }
+
+    blocker.events.onInputDown.addOnce(() => {
+      if (visit.leaving) return
+      visit.interrupted = true
+      for (const sound of visit.sounds) sound.stop()
+      if (visit.figge) visit.figge.resetTalk()
+      this.game.mulle.actors.mulle.resetTalk()
+      giveParts()
+      visit.interrupted = false
+      if (visit.figge) {
+        bye()
+      } else {
+        leave()
+      }
+    })
+
+    // the truck arrives
+    play('03e009v0', () => {
       // narrator
-      this.game.mulle.playAudio('03d043v0', () => {
-        /**
-         * Actor "figgeDoor"
-         * @type {MulleActor}
-         */
+      play('03d043v0', () => {
+        giveParts()
+
         const figge = new MulleActor(this.game, 320, 240, 'figgeDoor')
-
+        // FiggeAnimChart, frame 1 is member 81
+        const frames = (list) => list.map(f => [b, 81 + f - 1])
+        figge.addAnimation('freeze', frames([5]), 12, false)
+        figge.addAnimation('talkFigge', frames([9, 8, 7, 6, 7, 8, 9, 10, 11, 10, 9, 10, 9, 12, 13]), 12, true)
+        figge.addAnimation('goOut', frames([5, 4, 3, 3, 2, 1]), 12, false)
+        figge.talkAnimation = 'talkFigge'
+        figge.silenceAnimation = 'freeze'
         this.game.add.existing(figge)
-
+        this.game.world.bringToTop(blocker)
         this.game.mulle.actors.figge = figge
+        visit.figge = figge
 
         this.door_junk.onInputOverHandler()
 
         // door
-        this.game.mulle.playAudio('02e016v0', () => {
+        play('02e016v0', () => {
           figge.animations.play('enter').onComplete.addOnce(() => {
+            figge.animations.play('freeze')
             // hörru
-            this.game.mulle.actors.figge.talk('03d044v0', () => {
-              figge.animations.play(figge.silenceAnimation)
-
-              this.game.mulle.actors.mulle.silenceAnimation = 'idle'
-              this.game.mulle.actors.mulle.talkAnimation = 'talkRegular'
+            figge.talk('03d044v0', () => {
+              const mulle = this.game.mulle.actors.mulle
+              mulle.silenceAnimation = 'idle'
+              mulle.talkAnimation = 'talkRegular'
 
               // ser man på
-              this.game.mulle.actors.mulle.talk('03d045v0', () => {
-                this.game.mulle.actors.mulle.silenceAnimation = 'lookPlayer'
-                this.game.mulle.actors.mulle.talkAnimation = 'talkPlayer'
-
-                // jajamänsan
-                this.game.mulle.actors.figge.talk('03d046v0', () => {
-                  //figge.animations.play('exit').onComplete.addOnce(() => {
-                    figge.destroy()
-                    this.door_junk.onInputOutHandler()
-
-                    // door
-                    this.game.mulle.playAudio('02e015v0', () => {
-                      //figge.destroy()
-
-                      this.game.mulle.actors.figge = null
-
-                      // car
-                      this.game.mulle.playAudio('03e010v0', () => {
-                        console.log('figge done')
-                      })
-                    })
-                  //})
-                })
+              mulle.talk('03d045v0', () => {
+                mulle.silenceAnimation = 'lookPlayer'
+                mulle.talkAnimation = 'talkPlayer'
+                bye()
               })
             })
           })
         })
       })
     })
+  }
 
-    this.figgeGiveParts()
+  figgeHasParts () {
+    this.game.mulle.user.calculateParts()
+    return this.game.mulle.user.availableParts.JunkMan.length > 0
   }
 
   figgeGiveParts () {
@@ -350,8 +393,9 @@ class GarageState extends MulleState {
 
     console.log('Built cars', this.game.mulle.user.NrOfBuiltCars)
     console.log('Built cars mod', this.game.mulle.user.NrOfBuiltCars % 3)
-    if (this.game.mulle.user.NrOfBuiltCars % 3 === 0 && this.game.mulle.user.figgeIsComing)
-    {
+    // Figge only comes when Mulle has visited him and he has parts left, like checkFigge
+    if (this.game.mulle.user.NrOfBuiltCars % 3 === 0 && this.game.mulle.user.figgeIsComing &&
+      this.game.mulle.user.hasStuff('#Visited92') && this.figgeHasParts()) {
       console.log('Figge is coming!')
       this.game.mulle.user.figgeIsComing = 0
       this.game.mulle.user.figgeBeenHere = 1
