@@ -40,6 +40,7 @@ import MulleAudio from 'objects/audio'
 import MulleSave from 'struct/savedata'
 import PluginState from './scenes/plugin'
 import TreeCarState from './scenes/treecar'
+import LuddeLabbState from './scenes/luddelabb'
 import CreditsState from './scenes/credits'
 import MudCarState from './scenes/mudcar'
 import DirectorHelper from './objects/DirectorHelper'
@@ -154,6 +155,7 @@ class MulleGame extends Phaser.Game {
       saftfabrik: SaftfabrikState, // 87
       sturestortand: StureStortandState, // 88
       dorisdigital: DorisDigitalState, // 90
+      luddelabb: LuddeLabbState, // 91
       figgeferrum: FiggeFerrumState, // 92
       viola: ViolaState, // 89
 
