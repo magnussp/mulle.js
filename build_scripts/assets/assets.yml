@@ -262,6 +262,34 @@ garage:
       members:
         - 23  # Phone audio roaddog
         - [ 26, 28 ]  # Phone audio Doris/Mia/Lasse
+
+intro:
+  10.DXR:
+    Internal:
+      members:
+        - 1 # Yard
+        - 4 # Chassis
+        - 5 # Garage
+        - 12 # Garage with the chassis
+        - [ 14, 22 ] # Garage door and Mulle on the bike
+        - [ 25, 50 ] # Mulle with the battery
+        - [ 93, 94 ] # Landscape
+        - [ 96, 100 ] # Sunset and the small bike
+        - [ 105, 108 ] # Garage doors
+        - [ 188, 189 ] # Junk pile
+        - [ 196, 216 ] # Mulle digging
+        - [ 228, 235 ] # Dog
+      opaque:
+        - 1
+        - 5
+        - 12
+        - [ 93, 94 ]
+        - 96
+        - 188
+  00.CXT:
+    Standalone:
+      members:
+        - 97 # Toolbox
 junk:
   02.DXR:
     Internal:
@@ -329,6 +357,7 @@ menu:
     Internal:
       members:
         - 2 # Background
+        - 173 # Splash, shown at the start of the intro
         - [ 115, 123 ]  # face
         - [ 125, 138 ]  # mulle
         - [ 156, 163 ]  # buffa
@@ -340,6 +369,7 @@ menu:
         - [ 300, 307 ]  # menu audio TODO: Check [308, 310]
       opaque:
         - 2
+        - 173
       translations:
         splash:
           source: 173

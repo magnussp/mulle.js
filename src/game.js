@@ -43,6 +43,7 @@ import TreeCarState from './scenes/treecar'
 import LuddeLabbState from './scenes/luddelabb'
 import OceanState from './scenes/ocean'
 import CreditsState from './scenes/credits'
+import IntroState from './scenes/intro'
 import MudCarState from './scenes/mudcar'
 import DirectorHelper from './objects/DirectorHelper'
 
@@ -137,6 +138,7 @@ class MulleGame extends Phaser.Game {
       load: LoadState,
 
       menu: MenuState, // 10
+      intro: IntroState, // 10, after login
       credits: CreditsState, // 12
 
       junk: JunkState, // 02
