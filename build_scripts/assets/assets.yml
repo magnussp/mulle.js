@@ -426,13 +426,15 @@ roadtree:
         - [ 1, 3 ] # background and car
         - [ 13, 15 ] # driver animation
         - [ 21, 28 ] # Tree
-        - [ 33, 38 ] # Buffa
+        - 33 # Buffa animation, frames are in 00.CXT
         - [ 45, 91 ] # Mulle
         - [ 93, 97 ] # driver talk animation frames
         - 99 # driver talk animation
         - 113
         - [ 181, 183 ] # Sounds
-        - [ 200, 204 ] # Sounds
+        - 200 # Sounds
+        - 202
+        - [ 205, 207 ]
       opaque:
         - 1
         - 13
@@ -443,6 +445,9 @@ roadtree:
         sound009:
           other: 204
           source: 202
+        sound006_008:
+          other: [ 201, 203 ]
+          source: [ 205, 207 ]
 saftfabrik:
   87.DXR:
     Internal:

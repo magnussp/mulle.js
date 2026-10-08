@@ -26,7 +26,7 @@ class RoadThingState extends MulleState {
     background.setDirectorMember(this.DirResource, 25)
     this.game.add.existing(background)
 
-    this.car = new MulleBuildCar(this.game, 368, 240, null, true, true)
+    this.car = new MulleBuildCar(this.game, 340, 259, null, true, true)
     this.game.add.existing(this.car)
 
     if (!this.game.mulle.SetWhenDone) {

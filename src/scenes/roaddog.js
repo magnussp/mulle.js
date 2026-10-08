@@ -23,7 +23,7 @@ class RoadDogState extends MulleState {
     background.setDirectorMember('85.DXR', 25)
     this.game.add.existing(background)
 
-    this.car = new MulleBuildCar(this.game, 368, 240, null, true, true)
+    this.car = new MulleBuildCar(this.game, 340, 259, null, true, true)
     this.game.add.existing(this.car)
 
     // var dog = new MulleSprite(this.game, 480, 386);
