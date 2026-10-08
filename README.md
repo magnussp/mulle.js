@@ -25,28 +25,22 @@ python3 build_scripts/build.py sv download-only
 ```
 docker compose up --build
 ```
-The game is then available at http://localhost:8080/ and the multiplayer server at ws://localhost:8765.
+The game is then available at http://localhost:8080/.
 
 The first build takes a while since all assets are extracted and converted. Later builds reuse the Docker cache unless the build scripts or the game files change.
 
 ### Settings
 Settings are given as environment variables or in a `.env` file next to `docker-compose.yml`:
 
-| Variable         | Default               | Description                                                                                 |
-|------------------|-----------------------|---------------------------------------------------------------------------------------------|
-| `GAME_LANG`      | `sv`                  | Game language, selects `mullebil_<language>.iso`                                            |
-| `ISO_DIR`        | `./iso`               | Folder with the ISO and `plugin.exe`, can be outside the project                            |
-| `WEB_PORT`       | `8080`                | Port for the game on the host                                                               |
-| `SERVER_ADDRESS` | `ws://localhost:8765` | Multiplayer server used by the browser. It is built into the game, so rebuild after a change |
+| Variable    | Default | Description                                                      |
+|-------------|---------|------------------------------------------------------------------|
+| `GAME_LANG` | `sv`    | Game language, selects `mullebil_<language>.iso`                 |
+| `ISO_DIR`   | `./iso` | Folder with the ISO and `plugin.exe`, can be outside the project |
+| `WEB_PORT`  | `8080`  | Port for the game on the host                                    |
 
 Example, the Norwegian version with the ISO in another folder:
 ```
 GAME_LANG=no ISO_DIR=~/Downloads/mulle docker compose up --build
-```
-
-Use `SERVER_ADDRESS=wss://server.mulle.datagutten.net` to play against the public server, then the `server` service is not needed:
-```
-SERVER_ADDRESS=wss://server.mulle.datagutten.net docker compose up --build web
 ```
 
 ### Without Compose

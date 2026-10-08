@@ -43,8 +43,6 @@ RUN python build_scripts/topography.py ./cst_out_new/CDDATA.CXT/Standalone ./top
 
 
 FROM node:24 AS builder_js
-ARG SERVER_ADDRESS
-ENV SERVER_ADDRESS=${SERVER_ADDRESS}
 
 WORKDIR /build
 

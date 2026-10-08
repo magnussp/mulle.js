@@ -579,8 +579,6 @@ class GarageState extends MulleState {
 
     this.game.mulle.user.save()
 
-    this.game.mulle.net.send({ parts: this.game.mulle.user.Car.Parts })
-
     this.game.mulle.actors.mulle = null
 
     document.getElementById('cheats').innerHTML = ''

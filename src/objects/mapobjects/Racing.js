@@ -29,32 +29,11 @@ MapObject.onCreate = function () {
 
   this.board.addChild(this.boardText1)
 
-  this.boardText2 = new Phaser.Text(this.game, 15, 40, '', {
-    font: '16px arial',
-    fill: '#00ff00'
-  })
-
-  this.board.addChild(this.boardText2)
-
   this.boardLoop = this.game.time.events.loop(Phaser.Timer.SECOND / 15, () => {
     if (this.isRacing) {
       this.boardText1.text = boardNumber((Date.now() - this.raceStart) / 1000)
     }
   })
-
-  this.networkListener = (event) => {
-    var msg = JSON.parse(event.data)
-
-    if (msg.race) {
-      console.log('race msg', msg.race)
-
-      if (msg.race[0]) this.boardText1.text = boardNumber(msg.race[0].time) + ' ' + msg.race[0].name
-
-      if (msg.race[1]) this.boardText2.text = boardNumber(msg.race[1].time) + ' ' + msg.race[1].name
-    }
-  }
-
-  this.game.mulle.net.socket.addEventListener('message', this.networkListener)
 }
 
 function calcDirection (theStart, theEnd) {
@@ -114,8 +93,6 @@ MapObject.onEnterInner = function (car) {
 
         this.boardText1.text = boardNumber(finalTime) + ' ' + this.game.mulle.user.UserId
 
-        this.game.mulle.net.send({ race: finalTime })
-
         // Like EnterInnerRadius in ObjectRacingScript
         this.game.mulle.user.addCompletedMission(this.def.SetWhenDone.Missions[0])
         this.game.mulle.user.Car.addCache('#racing')
@@ -169,8 +146,6 @@ MapObject.onDestroy = function () {
   this.board.destroy()
 
   this.game.time.events.remove(this.boardLoop)
-
-  this.game.mulle.net.socket.removeEventListener('message', this.networkListener)
 }
 
 export default MapObject

@@ -62,9 +62,6 @@ class MulleState extends Phaser.State {
       // if( process.env.NODE_ENV !== "production" ){
 
       window.location.hash = this.key
-
-      this.game.mulle.net.send({ name: this.game.mulle.user.UserId })
-      this.game.mulle.net.send({ parts: this.game.mulle.user.Car.Parts })
     }
 
     // this.game.canvas.className = '';

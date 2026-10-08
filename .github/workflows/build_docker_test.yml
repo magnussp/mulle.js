@@ -44,4 +44,3 @@ jobs:
           build-args: |
             GAME_LANG=${{ matrix.language }}
             OPTIPNG_LEVEL=0
-            SERVER_ADDRESS=wss://server.mulle.datagutten.net

@@ -11,8 +11,6 @@ import MulleToolbox from '../objects/toolbox'
 
 import MulleMapObject from '../objects/mapobject'
 
-import MulleBuildCar from '../objects/buildcar'
-import MulleMPCar from '../objects/mpcar'
 
 import MulleWorld from '../struct/world'
 
@@ -270,8 +268,6 @@ class WorldState extends MulleState {
 
     this.mapId = mapId
 
-    this.game.mulle.net.send({ map: mapId })
-
     // console.log('New coordinates', this.mapCoordinate);
 
     // console.log('%cMap changed', 'font-size: large');
@@ -482,61 +478,6 @@ class WorldState extends MulleState {
       return true
     }
 
-    // networking
-    if (this.game.mulle.net.connected) {
-      this.networkTicks = 4
-
-      this.networkListener = this.networkUpdate.bind(this)
-
-      this.game.mulle.net.socket.addEventListener('message', this.networkListener)
-
-      this.netLoop = this.game.time.events.loop(Phaser.Timer.SECOND / this.networkTicks, this.networkSend, this)
-      this.clients = {}
-      this.clientCars = this.game.add.group()
-
-      this.chatInput = document.createElement('input')
-      this.chatInput.style.position = 'absolute'
-      this.chatInput.style.bottom = '18%'
-      this.chatInput.style.left = '1%'
-      this.chatInput.className = 'chatInput'
-      this.chatInput.maxLength = 140
-
-      this.chatInput.addEventListener('keyup', (e) => {
-        if (e.keyCode === 13) {
-          this.game.mulle.net.send({
-            msg: this.chatInput.value
-          })
-
-          this.chatInput.value = ''
-        }
-      })
-
-      document.getElementById('player').appendChild(this.chatInput)
-
-      this.chatLog = []
-
-      this.chatHistory = new Phaser.Text(this.game, 0, 0, '', {
-
-        font: '11px arial',
-        fill: '#ffffff',
-        // backgroundColor: 'rgba(0,0,0,.5)',
-
-        stroke: '#000000',
-        strokeThickness: 2,
-
-        boundsAlignH: 'left',
-        boundsAlignV: 'bottom'
-
-      })
-
-      this.chatHistory.lineSpacing = -5
-
-      this.chatHistory.setTextBounds(5, 290, 300, 80)
-      // this.chatHistory.textBounds = new Phaser.Rectangle( 0, 0, 300, 100 );
-
-      this.game.add.existing(this.chatHistory)
-    }
-
     // cheats
     if (this.game.mulle.cheats) {
       for (let y = 0; y < this.activeWorld.map.length; y++) {
@@ -558,135 +499,6 @@ class WorldState extends MulleState {
 
         document.getElementById('cheats').appendChild(row)
       }
-    }
-  }
-
-  networkRefresh () {
-    this.clientCars.killAll(true)
-
-    // console.log('network refresh', this.clients);
-
-    for (var id in this.clients) {
-      var p = new MulleMPCar(this.game)
-
-      p.position.set(this.clients[id].x, this.clients[id].y)
-
-      p.updateImage()
-
-      if (this.clients[id].n) {
-        p.nametag.text = this.clients[id].n
-      }
-
-      p.inputEnabled = true
-      p.input.useHandCursor = true
-      p.events.onInputDown.add(() => {
-        this.driveCar.enabled = false
-
-        var showcar = new MulleBuildCar(this.game, 320, 240, this.clients[id].p, true, false)
-        this.game.add.existing(showcar)
-
-        // showcar.events.onInputDown.add( () => {
-
-        setTimeout(() => {
-          this.driveCar.enabled = true
-          showcar.destroy()
-        }, 3000)
-
-        // });
-      })
-
-      this.clientCars.addChild(p)
-
-      this.clients[id].car = p
-
-      // console.log('add car', id);
-    }
-  }
-
-  networkUpdate (event) {
-    var msg = JSON.parse(event.data)
-
-    // console.log('world network', msg.data);
-
-    console.debug('network receive', msg)
-
-    if (msg.c) {
-      // console.log('client list updated');
-
-      this.clients = msg.c
-
-      this.networkRefresh()
-    }
-
-    // if( msg.join ) this.clients[ msg.join ] = {};
-
-    if (msg.leave) {
-      // console.log('leave', msg.leave);
-
-      delete this.clients[ msg.leave ]
-
-      this.networkRefresh()
-    }
-
-    if (msg.x && msg.y) {
-      if (!this.clients[ msg.i ]) {
-        console.error('invalid client', msg.i)
-        return
-      }
-
-      this.clients[ msg.i ].x = msg.x
-      this.clients[ msg.i ].y = msg.y
-      this.clients[ msg.i ].d = msg.d
-
-      // this.clients[ msg.i ].car.position.set( msg.x, msg.y );
-
-      game.add.tween(this.clients[ msg.i ].car).to({
-        x: msg.x,
-        y: msg.y
-        // direction: msg.d,
-      }, Phaser.Timer.SECOND / this.networkTicks, Phaser.Easing.Linear.None, true)
-
-      this.clients[ msg.i ].car.direction = msg.d
-
-      this.clients[ msg.i ].car.updateImage()
-    }
-
-    if (msg.msg) {
-      var t = ''
-
-      this.chatLog.push(msg)
-
-      this.chatLog.forEach((m) => {
-        t += m.p + ': ' + m.msg + '\n'
-      })
-
-      if (this.chatLog.length > 5) this.chatLog.splice(0, 1)
-
-      this.chatHistory.text = t.trim('\n')
-    }
-  }
-
-  networkSend () {
-    if (this.game.mulle.net.socket) {
-      if (Object.keys(this.clients).length === 0) return
-
-      if (
-        this.lastX === Math.round(this.driveCar.position.x) &&
-        this.lastY === Math.round(this.driveCar.position.y) &&
-        this.lastD === this.driveCar.direction
-      ) {
-        return
-      }
-
-      this.game.mulle.net.send({
-        x: Math.round(this.driveCar.position.x),
-        y: Math.round(this.driveCar.position.y),
-        d: this.driveCar.direction
-      })
-
-      this.lastX = Math.round(this.driveCar.position.x)
-      this.lastY = Math.round(this.driveCar.position.y)
-      this.lastD = this.driveCar.direction
     }
   }
 
@@ -791,16 +603,6 @@ class WorldState extends MulleState {
       this.cutscene.destroy()
       this.cutscene = null
     }
-
-    // networking stuff
-    if (this.game.mulle.net.connected) {
-      this.game.mulle.net.socket.removeEventListener('message', this.networkListener)
-      this.clientCars.destroy()
-    }
-
-    if (this.netLoop) this.game.time.events.remove(this.netLoop)
-    if (this.chatInput) this.chatInput.parentNode.removeChild(this.chatInput)
-    if (this.chatHistory) this.chatHistory.destroy()
   }
 }
 

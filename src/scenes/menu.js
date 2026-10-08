@@ -192,8 +192,6 @@ class MenuState extends MulleState {
   selectUser (name) {
     this.game.mulle.user = this.game.mulle.UsersDB[name]
 
-    this.game.mulle.net.send({ name: name })
-
     // Like resultsFromScroller in 10.DXR, the intro is played after every login
     this.game.state.start('intro')
   }
