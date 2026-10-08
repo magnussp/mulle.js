@@ -5,7 +5,6 @@
 'use strict'
 
 import MulleSprite from 'objects/sprite'
-import DirectorHelper from './DirectorHelper'
 
 /**
  * Overworld car
@@ -497,11 +496,7 @@ class MulleDriveCar extends MulleSprite {
                 this.SoundMud = true
               }
             } else {
-              if (!this.game.mulle.user.Car.hasMedal(3)) {
-                this.game.mulle.user.Car.addMedal(3)
-                const medal_sprite = DirectorHelper.sprite(this.game, 16, 420, this.DirResource, 71, false, false) //TODO: Add blink
-                this.game.add.existing(medal_sprite)
-              }
+              this.state.awardMedal(3)
 
             }
           }
@@ -550,7 +545,11 @@ class MulleDriveCar extends MulleSprite {
 
     // change map
     var b = this.checkBorders(this.direction, this.forwardBackward)
-    if (b) {
+    if (b && !this.state.hasMap(b)) {
+      // There is no map in that direction, like getNewMapId in the original
+      this.speed = 0
+      this.stepback(1)
+    } else if (b) {
       console.log(b)
       console.log('Change map')
 

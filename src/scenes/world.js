@@ -86,6 +86,83 @@ class WorldState extends MulleState {
     this.game.mulle.lastSession = null
   }
 
+  /**
+   * Give the car a medal if it does not already have it
+   * @param {number} medalId
+   */
+  awardMedal (medalId) {
+    if (this.game.mulle.user.Car.hasMedal(medalId)) return
+    this.game.mulle.user.Car.addMedal(medalId)
+    this.blinkMedal(medalId)
+  }
+
+  /**
+   * Blink a medal on the dashboard and play its sounds, like MedalBH in 05.DXR
+   * @param {number} medalId
+   */
+  blinkMedal (medalId) {
+    const medals = ['00n004v0', '00n005v0', '00n006v0', '00n007v0', '00n010v0', '00n009v0']
+    const sounds = ['05d008v0', '05d009v0', '05d007v0', '', '05d006v0', '05d010v0']
+
+    if (this.medalBlinkTimer) this.game.time.events.remove(this.medalBlinkTimer)
+    this.spriteMedal.setDirectorMember('05.DXR', medals[medalId - 1])
+    this.spriteMedal.visible = true
+    this.medalBlinkTimer = this.game.time.events.loop(5 * 1000 / 12, () => {
+      this.spriteMedal.visible = !this.spriteMedal.visible
+    })
+
+    const stop = () => {
+      this.game.time.events.remove(this.medalBlinkTimer)
+      this.medalBlinkTimer = null
+      this.spriteMedal.visible = false
+    }
+
+    const ding = this.game.mulle.playAudio('00e021v0', () => {
+      if (!sounds[medalId - 1] || !this.game.mulle.playAudio(sounds[medalId - 1], stop)) stop()
+    })
+    if (!ding) stop()
+  }
+
+  /**
+   * Load a world, like loadWorld in the Dir script of 05.DXR
+   * @param {string} worldId
+   */
+  loadWorld (worldId) {
+    if (!this.game.mulle.WorldsDB[worldId]) {
+      console.error('World not found', worldId)
+      worldId = 'Da Hood'
+    }
+    this.game.mulle.activeWorld = worldId
+    this.activeWorld = new MulleWorld(this.game, worldId)
+    this.activeWorld.fromJSON(this.game.mulle.WorldsDB[worldId])
+    this.activeWorld.calcRandomDestinations()
+    this.activeWorld.randomizeDestinations()
+  }
+
+  /**
+   * Check if there is a map next to the current map
+   * @param {Phaser.Point} pos Relative map coordinate
+   * @return {boolean}
+   */
+  hasMap (pos) {
+    const row = this.activeWorld.map[this.mapCoordinate.y + pos.y - 1]
+    return !!(row && row[this.mapCoordinate.x + pos.x - 1])
+  }
+
+  /**
+   * Move the car to another map, like teleport in the Dir script of 05.DXR
+   * @param {string} world
+   * @param {Phaser.Point} map Map coordinate
+   * @param {Phaser.Point} loc Car position
+   */
+  teleport (world, map, loc) {
+    console.log('Teleport', world, map, loc)
+    if (world && world !== this.activeWorld.WorldId) this.loadWorld(world)
+    this.changeMap(map, true)
+    this.driveCar.position.set(loc.x, loc.y)
+    this.driveCar.speed = 0
+  }
+
   changeMap (pos, absolute = false) {
     console.log('Change map', pos)
 
@@ -150,7 +227,8 @@ class WorldState extends MulleState {
 
           var currentRDest = this.activeWorld.rDests[ objectId ]
 
-          if (!this.mapCoordinate.equals(currentRDest)) {
+          // Compare with the new map, this.mapCoordinate is updated below
+          if (!currentRDest.equals(new Phaser.Point(newX, newY))) {
             console.debug('[rdest]', 'inactive', objectId, currentRDest.x, currentRDest.y)
 
             return
@@ -162,6 +240,14 @@ class WorldState extends MulleState {
         mapObject.doCheck()
 
         this.mapObjects.add(mapObject)
+
+        // A destination the car is already at is not entered until the car has left it,
+        // like readyToGo in the Destination script
+        if (mapObject.isDestination() && this.driveCar &&
+          this.driveCar.position.distance(mapObject.position) <= mapObject.OuterRadius / 2) {
+          mapObject.enteredOuter = true
+          mapObject.enteredInner = true
+        }
 
         if (mapObject.def.type === '#Correct') {
           console.debug('CORRECT', mapObject)
@@ -250,6 +336,10 @@ class WorldState extends MulleState {
       this.changeMap(this.mapCoordinate, true)
     }
 
+    // Steering chosen in the toolbox is kept, like drivingInfo in the original
+    this.steeringChosen = this.game.mulle.keySteer !== undefined
+    if (this.steeringChosen) this.driveCar.keySteer = this.game.mulle.keySteer
+
     this.spriteDashboard = new MulleSprite(this.game, 320, 440)
     this.spriteDashboard.loadDirectorTexture('01b003v0')
     this.game.add.existing(this.spriteDashboard)
@@ -277,6 +367,11 @@ class WorldState extends MulleState {
 
     this.spriteSpeedometer.mask = spdMask
     this.lastFuelAmount = 0
+
+    // medal shown when a medal is awarded
+    this.spriteMedal = new MulleSprite(this.game, 41, 442)
+    this.spriteMedal.visible = false
+    this.game.add.existing(this.spriteMedal)
 
     // toolbox, manual
     this.toolbox = new MulleToolbox(this.game, 659, 439)
@@ -306,10 +401,26 @@ class WorldState extends MulleState {
       }
 
       var currentAudio
+      var hoverTimer
+
+      // Shows that mouse steering is chosen, like steerMode in FDialogWorldBH
+      const steeringMode = new MulleSprite(this.game, 320, 200)
+      steeringMode.setDirectorMember('05.DXR', 54)
+      steeringMode.visible = !this.driveCar.keySteer
+      this.popupMenuMode = steeringMode
+      this.game.add.existing(steeringMode)
 
       var funcList = {
+        Steering: () => {
+          this.driveCar.keySteer = this.driveCar.keySteer ? 0 : 1
+          this.steeringChosen = true
+          this.game.mulle.keySteer = this.driveCar.keySteer
+          steeringMode.visible = !this.driveCar.keySteer
+        },
         Home: () => {
-          this.game.state.start('yard')
+          // Back to the garage, like prepareToLeave(gDir, "03")
+          this.game.mulle.lastSession = null
+          this.game.state.start('garage')
         },
         Cancel: () => {
           this.toolbox.toggleToolbox(this.toolbox)
@@ -318,6 +429,8 @@ class WorldState extends MulleState {
           this.game.state.start('menu')
         },
         Diploma: () => {
+          // Continue driving from the same place after the diploma
+          this.saveSession()
           this.game.state.start('diploma', true, false, this.key)
         }
       }
@@ -331,13 +444,22 @@ class WorldState extends MulleState {
         b.width = r[2] - r[0]
         b.height = r[3] - r[1]
 
+        // The button says what it does after 10 frames over it, like sndDelay in FDialogWorldBH
         b.onInputOver.add(() => {
-          if (currentAudio) currentAudio.stop()
-          currentAudio = this.game.mulle.playAudio(soundList[n])
+          hoverTimer = this.game.time.events.add(10 * 1000 / 12, () => {
+            if (currentAudio) currentAudio.stop()
+            currentAudio = this.game.mulle.playAudio(soundList[n])
+          })
+        })
+
+        b.onInputOut.add(() => {
+          if (hoverTimer) this.game.time.events.remove(hoverTimer)
         })
 
         b.onInputDown.add(() => {
+          if (hoverTimer) this.game.time.events.remove(hoverTimer)
           if (currentAudio) currentAudio.stop()
+          this.game.mulle.playAudio('SndMouseClick')
           funcList[n]()
         })
 
@@ -345,7 +467,7 @@ class WorldState extends MulleState {
       }
 
       this.driveCar.enabled = false
-      this.driveCar.engineAudio.stop()
+      if (this.driveCar.engineAudio) this.driveCar.engineAudio.stop()
 
       return true
     }
@@ -354,6 +476,7 @@ class WorldState extends MulleState {
       console.log('hide', this)
 
       this.popupMenu.destroy()
+      this.popupMenuMode.destroy()
 
       this.popupMenuButtons.destroy()
 
@@ -602,12 +725,13 @@ class WorldState extends MulleState {
 
     if (!this.game.mulle.debug) {
       // set active steering method
-      if (p.isDown) this.driveCar.keySteer = 0
+      // Switch steering automatically unless it has been chosen in the toolbox
+      if (p.isDown && !this.steeringChosen) this.driveCar.keySteer = 0
 
-      if (this.driveCar.cursors.up.isDown ||
+      if (!this.steeringChosen && (this.driveCar.cursors.up.isDown ||
           this.driveCar.cursors.down.isDown ||
           this.driveCar.cursors.left.isDown ||
-          this.driveCar.cursors.right.isDown) {
+          this.driveCar.cursors.right.isDown)) {
         this.driveCar.keySteer = 1
       }
     } else {

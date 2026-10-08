@@ -159,6 +159,13 @@ class MulleMapObject extends MulleSprite {
     if (this.custom && this.custom.onEnterOuter) {
       this.custom.onEnterOuter.call(this, car)
     }
+
+    // A destination that can not be entered plays its second sound, like the Destination script
+    if (this.isDestination() && this.canEnter === false && this.def.Sounds && this.def.Sounds.length > 1) {
+      if (!this.noEnterSound || !this.noEnterSound.isPlaying) {
+        this.noEnterSound = this.game.mulle.playAudio(this.def.Sounds[1])
+      }
+    }
   }
 
   onExitOuter (car) {
@@ -174,6 +181,8 @@ class MulleMapObject extends MulleSprite {
       this.custom.onEnterInner.call(this, car)
       return
     }
+
+    if (this.isDestination() && this.canEnter === false) return
 
     if (this.isDestination()) {
       // Remember visited destinations, like setUserProp(#Visited & DirResource) in the Destination script
@@ -253,24 +262,52 @@ class MulleMapObject extends MulleSprite {
     }
   }
 
+  /**
+   * Check the CheckFor conditions of the object, like init in the Object script of 00.CXT
+   * IfFound #NoDisplay hides the object and #NoEnter makes a destination impossible to enter
+   */
   doCheck () {
-    if (!this.def.CheckFor) return
+    this.canEnter = true
+    const checkFor = this.def.CheckFor
+    if (!checkFor || Array.isArray(checkFor)) return
 
-    if (this.def.CheckFor.Cache) {
-      this.def.CheckFor.Cache.forEach((v) => {
-        if (this.game.mulle.user.Car.hasCache(v)) {
-          if (this.def.IfFound === '#NoDisplay') {
-            this.enabled = false
-            this.renderable = false
-            console.log('disable map object', this.id, this.def.CheckFor.Cache, this.game.mulle.user.Car.CacheList)
-          }
-        }
-      })
+    const user = this.game.mulle.user
+    const toList = (value) => Array.isArray(value) ? value : [value]
+    const checks = {
+      Cache: (v) => user.Car.hasCache(v),
+      Medals: (v) => user.Car.hasMedal(v),
+      UserStuff: (v) => user.hasStuff(v),
+      Missions: (v) => user.isMissionCompleted(v)
     }
 
-    // console.log(this.id, 'IfFound', this.def.IfFound);
-    // console.log(this.id, 'CheckFor', this.def.CheckFor);
-    // console.log(this.id, 'SetWhenDone', this.def.SetWhenDone);
+    let found = false
+    for (const key in checkFor) {
+      if (key === 'Parts') {
+        // Found when there is no part left to give
+        const parts = toList(checkFor.Parts)
+        const fixedLeft = parts.some((v) => v !== '#Random' && !user.hasPart(v))
+        let randomLeft = false
+        if (parts.includes('#Random')) {
+          user.calculateParts()
+          randomLeft = user.availableParts.Random.length > 0
+        }
+        found = !fixedLeft && !randomLeft
+      } else if (checks[key]) {
+        found = toList(checkFor[key]).some(checks[key])
+      }
+      if (found) break
+    }
+
+    if (!found) return
+
+    if (this.def.IfFound === '#NoDisplay') {
+      this.enabled = false
+      this.renderable = false
+      console.log('disable map object', this.id, checkFor)
+    } else if (this.def.IfFound === '#NoEnter') {
+      this.canEnter = false
+      console.log('map object can not be entered', this.id, checkFor)
+    }
   }
 
   destroy () {

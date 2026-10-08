@@ -2,18 +2,13 @@
 
 // noinspection JSValidateTypes
 /**
- * Far away (Doris Digital, map 17)
+ * Far away (map 19), gives a medal for driving far from home
  * @type {MulleMapObject}
  */
 var MapObject = {}
 
-MapObject.onEnterInner = function () {
-  // TODO: Cutscene?
-  const hasMedal = this.game.mulle.user.Car.hasMedal(2)
-  if (!hasMedal) {
-    this.game.mulle.playAudio('05d010v0')
-    this.game.mulle.user.Car.addMedal(2)
-  }
+MapObject.onEnterOuter = function () {
+  this.game.state.getCurrentState().awardMedal(this.def.SetWhenDone.Medals[0])
 }
 
 export default MapObject

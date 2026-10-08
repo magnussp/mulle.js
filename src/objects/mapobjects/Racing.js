@@ -116,7 +116,12 @@ MapObject.onEnterInner = function (car) {
 
         this.game.mulle.net.send({ race: finalTime })
 
-        alert(finalTime)
+        // Like EnterInnerRadius in ObjectRacingScript
+        this.game.mulle.user.addCompletedMission(this.def.SetWhenDone.Missions[0])
+        this.game.mulle.user.Car.addCache('#racing')
+        if (finalTime < 15) {
+          this.game.state.getCurrentState().awardMedal(this.def.SetWhenDone.Medals[0])
+        }
       }
     } else {
       console.log('start race')

@@ -116,6 +116,7 @@ driving:
         - [ 27, 42 ]  # fuel meter
         - 46  # speed meter
         - 53  # menu
+        - 54  # steering mode in the menu
         - [ 69, 75 ]  # medals
         - [ 77, 157 ]  # car
         - [ 161, 192 ]  # pointer
@@ -450,6 +451,7 @@ shared:
   00.CXT:
     Standalone:
       members:
+        - 20 # SndMouseClick
         - [ 416, 421 ] # Sounds
         - [ 433, 461 ] # Sounds
         - [ 469, 474 ]
