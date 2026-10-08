@@ -5,16 +5,11 @@ import MulleActor from '../objects/actor'
 // import MulleAudio from '../objects/audio'
 
 import MulleSave from '../struct/savedata'
-import DirectorHelper from '../objects/DirectorHelper'
 
 class MenuState extends MulleState {
   preload () {
     // this.game.load.pack('menu', 'assets/menu.json', null, this);
     this.game.load.pack('menu', 'assets/menu.json', null, this)
-  }
-
-  toilet() {
-    //this.game.state.start('lbstart')
   }
 
   create () {
@@ -29,17 +24,39 @@ class MenuState extends MulleState {
     mulleBase.setDirectorMember('10.DXR', 125)
     this.game.add.existing(mulleBase)
 
+    const m = '10.DXR'
+    // MulleLoggAnimChart, frame 1 is member 127
+    const logg = (list) => list.map(f => [m, 127 + f - 1])
     var mulleHead = new MulleActor(this.game, 139, 296, 'mulleMenuHead')
+    mulleHead.addAnimation('pek', logg([8, 7, 6, 5, 10, 11, 11, 11, 11, 12, 11, 11, 10, 5, 6, 7, 8]), 12, false)
+    mulleHead.addAnimation('kli', logg([8, 7, 6, 5, 4, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 4, 5, 6, 7, 8]), 12, false)
     mulleHead.animations.play('idle')
     this.game.add.existing(mulleHead)
-    // this.game.mulle.actors.mulle = mulle;
+    this.mulleHead = mulleHead
 
+    // MullePratAnimChart, frame 1 is member 115
     var mulleMouth = new MulleActor(this.game, 139, 296, 'mulleMenuMouth')
+    mulleMouth.addAnimation('talk', [116, 117, 120, 118, 119].map(f => [m, f]), 12, true)
+    mulleMouth.addAnimation('blinkOnce', [[m, 123], [m, 123]], 12, false)
+    mulleMouth.talkAnimation = 'talk'
     mulleMouth.animations.play('idle')
     this.game.add.existing(mulleMouth)
 
-    const toilet = DirectorHelper.button(this.game, 550, 375, this.toilet, this, '10.DXR', 170, 169)
-    this.game.add.existing(toilet)
+    // Clicking Mulle is the same as pressing enter, like ClickMulle in 10.DXR
+    const clickMulle = this.game.add.graphics(6, 145)
+    clickMulle.beginFill(0x000000, 0)
+    clickMulle.drawRect(0, 0, 282, 332)
+    clickMulle.endFill()
+    clickMulle.inputEnabled = true
+    clickMulle.events.onInputUp.add(() => this.tryToLeave())
+
+    this.addBuffa()
+
+    // Drag a name to the trash to delete the user, like TrashBH in 10.DXR
+    this.trash = new MulleSprite(this.game, 550, 375)
+    this.trash.setDirectorMember('10.DXR', 169)
+    this.game.add.existing(this.trash)
+    this.mulleMouth = mulleMouth
 
     this.nameInput = document.createElement('input')
     this.nameInput.style.position = 'absolute'
@@ -52,59 +69,13 @@ class MenuState extends MulleState {
     this.nameInput.style.width = '180px'
 
     this.nameInput.addEventListener('keyup', (ev) => {
-      let name = this.nameInput.value
-
-      if (ev.keyCode === 13) {
-        if (this.game.mulle.UsersDB[ name ]) {
-          this.game.mulle.user = this.game.mulle.UsersDB[ name ]
-        } else {
-          let save = new MulleSave(this.game)
-          save.UserId = name
-
-          this.game.mulle.UsersDB[ name ] = save
-          this.game.mulle.saveData()
-
-          this.game.mulle.user = save
-        }
-
-        this.game.mulle.activeCutscene = '00b011v0'
-
-        this.game.mulle.net.send({ name: name })
-
-        this.game.state.start('garage')
-      }
+      if (ev.keyCode === 13) this.tryToLeave()
     })
 
     document.getElementById('player').appendChild(this.nameInput)
 
-    let y = 60
-    for (let name in this.game.mulle.UsersDB) {
-      let text = this.game.add.text(350, y, name, { font: '24px serif' })
-      text.inputEnabled = true
-      // text.useHandCursor = true;
-
-      text.events.onInputOver.add((e) => {
-        this.game.canvas.className = 'cursor-point'
-      }, this)
-
-      text.events.onInputOut.add((e) => {
-        this.game.canvas.className = ''
-      }, this)
-
-      text.events.onInputUp.add((e) => {
-        this.game.canvas.className = ''
-
-        this.game.mulle.user = this.game.mulle.UsersDB[ name ]
-
-        this.game.mulle.activeCutscene = '00b011v0'
-
-        this.game.mulle.net.send({ name: name })
-
-        this.game.state.start('garage')
-      }, this)
-
-      y += 25
-    }
+    this.userList = this.game.add.group()
+    this.drawUserList()
 
     this.game.mulle.subtitle.setLines('11d001v0', 'swedish', [
       '- Hej!',
@@ -132,11 +103,158 @@ class MenuState extends MulleState {
         if (c[1] === 'talk') mulleMouth.animations.play('talkPlayer')
 
         if (c[1] === 'point') {
-          mulleHead.animations.play('point')
+          mulleHead.animations.play('pek')
           console.log('do point')
         }
       })
+      this.startIdle()
     })
+  }
+
+  /**
+   * Start with the name in the field, a new user is created if the name is new.
+   * The list holds 6 names, like AddLine in ScrollFieldBH
+   */
+  tryToLeave () {
+    const name = this.nameInput.value.trim()
+    if (!name) return
+
+    if (!this.game.mulle.UsersDB[name]) {
+      if (Object.keys(this.game.mulle.UsersDB).length >= 6) {
+        // The list is full
+        if (!this.mulleMouth.isTalking) this.mulleMouth.talk('11d008v0')
+        return
+      }
+      const save = new MulleSave(this.game)
+      save.UserId = name
+      this.game.mulle.UsersDB[name] = save
+      this.game.mulle.saveData()
+    }
+
+    this.selectUser(name)
+  }
+
+  /**
+   * Mulle waits, blinks, scratches himself and says something now and then, like MulleLogBH
+   */
+  startIdle () {
+    const talks = ['11d002v0', '11d003v0', '11d004v0', '11d005v0', '11d006v0']
+    let lastTalk = null
+    let busy = false
+    this.game.time.events.loop(1000 / 12, () => {
+      if (busy || this.mulleMouth.isTalking || this.game.rnd.integerInRange(1, 50) !== 1) return
+      const choice = this.game.rnd.integerInRange(1, 8)
+      busy = true
+      if (choice === 1) {
+        // Scratch, the head is hidden while the body moves
+        this.mulleMouth.visible = false
+        this.mulleHead.animations.play('kli').onComplete.addOnce(() => {
+          this.mulleHead.animations.play('idle')
+          this.mulleMouth.visible = true
+          busy = false
+        })
+      } else if (choice <= 4) {
+        this.mulleMouth.animations.play('blinkOnce').onComplete.addOnce(() => {
+          this.mulleMouth.animations.play('idle')
+          busy = false
+        })
+      } else {
+        const sound = this.game.rnd.pick(talks.filter(t => t !== lastTalk))
+        lastTalk = sound
+        this.mulleMouth.talk(sound, () => { busy = false })
+      }
+    })
+  }
+
+  /**
+   * Buffa sleeps next to Mulle, BuffaAnimChart Sleep with frame 1 as member 156
+   */
+  addBuffa () {
+    const m = '10.DXR'
+    const buffa = new MulleSprite(this.game, 491, 380)
+    buffa.setDirectorMember(m, 161)
+    this.game.add.existing(buffa)
+    const sleep = () => {
+      buffa.setDirectorMember(m, 161)
+      this.game.time.events.add(this.game.rnd.integerInRange(13, 18) * 1000 / 12, () => {
+        this.game.mulle.playAudio(this.game.rnd.pick(['00e037v0', '00e038v0']))
+        const frames = [162, 162, 163, 163, 163, 163, 163, 163, 163, 162, 162]
+        let i = 0
+        this.game.time.events.repeat(1000 / 12, frames.length, () => {
+          buffa.setDirectorMember(m, frames[i++])
+          if (i === frames.length) sleep()
+        })
+      })
+    }
+    sleep()
+  }
+
+  selectUser (name) {
+    this.game.mulle.user = this.game.mulle.UsersDB[name]
+
+    this.game.mulle.activeCutscene = '00b011v0'
+
+    this.game.mulle.net.send({ name: name })
+
+    this.game.state.start('garage')
+  }
+
+  drawUserList () {
+    this.userList.removeAll(true)
+
+    let y = 60
+    for (let name in this.game.mulle.UsersDB) {
+      let text = this.game.add.text(350, y, name, { font: '24px serif' }, this.userList)
+      text.inputEnabled = true
+      text.input.enableDrag()
+      const home = new Phaser.Point(text.x, text.y)
+
+      text.events.onInputOver.add((e) => {
+        this.game.canvas.className = 'cursor-point'
+      }, this)
+
+      text.events.onInputOut.add((e) => {
+        this.game.canvas.className = ''
+      }, this)
+
+      text.events.onDragUpdate.add(() => {
+        const overTrash = this.trash.getBounds().contains(this.game.input.x, this.game.input.y)
+        if (overTrash && !this.overTrash) {
+          this.game.mulle.playAudio('11e001v0')
+          // Mulle warns about throwing the name away
+          if (!this.mulleMouth.isTalking) this.mulleMouth.talk('11d007v0')
+          this.trash.setDirectorMember('10.DXR', 170)
+        } else if (!overTrash && this.overTrash) {
+          this.trash.setDirectorMember('10.DXR', 169)
+        }
+        this.overTrash = overTrash
+      }, this)
+
+      text.events.onDragStop.add(() => {
+        this.game.canvas.className = ''
+        this.trash.setDirectorMember('10.DXR', 169)
+
+        if (this.overTrash) {
+          this.overTrash = false
+          this.game.mulle.playAudio('11e002v0')
+          if (this.game.mulle.user === this.game.mulle.UsersDB[name]) this.game.mulle.user = null
+          delete this.game.mulle.UsersDB[name]
+          this.game.mulle.saveData()
+          // Redraw after the drag has ended
+          this.game.time.events.add(0, this.drawUserList, this)
+          return
+        }
+
+        if (home.distance(text.position) < 5) {
+          // A click, not a drag
+          this.selectUser(name)
+        } else {
+          text.position.copyFrom(home)
+        }
+      }, this)
+
+      y += 25
+    }
   }
 
   shutdown () {
