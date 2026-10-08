@@ -549,17 +549,24 @@ yard:
         - 30 # Off the road
         - 37 # Background
         - [ 40, 44 ] # Door/mailbox
+        - 47 # Gift note
+        - 53 # Gift package
         - 261 # No mail
         - [ 272, 277 ] # Package and garage full
         - [ 279, 280 ] # Mail/figge
+        - 282 # Gift note speech
       opaque:
         - [ 16,37 ]
+        - 47
         - [ 116, 118 ]
         - [ 228,230 ]
       translations:
         background:
           other: 145
           source: 37
+        note:
+          other: 146
+          source: 47
         speech:
           other:
             - 117

@@ -65,7 +65,8 @@ class MulleSave {
     this.CompletedMissions = []
     this.OwnStuff = []
     this.myLastPile = 1
-    this.gifts = []
+    // A new user gets a gift package with a part, like new in the User script
+    this.gifts = [[27, { x: 462, y: 179 }]]
     this.toYardThroughDoor = true
     this.givenMissions = []
     this.figgeIsComing = false
@@ -202,7 +203,7 @@ class MulleSave {
     this.CompletedMissions = data.CompletedMissions || []
     this.OwnStuff = data.OwnStuff ? data.OwnStuff : []
     this.myLastPile = data.myLastPile
-    this.gifts = data.gifts
+    this.gifts = data.gifts || []
     this.toYardThroughDoor = data.toYardThroughDoor
     this.givenMissions = data.givenMissions || []
     this.figgeIsComing = data.figgeIsComing
@@ -223,6 +224,7 @@ class MulleSave {
       givenMissions: this.givenMissions,
       myLastPile: this.myLastPile,
       savedCars: this.savedCars,
+      gifts: this.gifts,
       figgeIsComing: this.figgeIsComing,
       missionIsComing: this.missionIsComing
     }

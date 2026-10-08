@@ -9,6 +9,7 @@ import MulleButton from '../objects/button'
 import MulleCarPart from '../objects/carpart'
 import MulleActor from '../objects/actor'
 import SubtitleLoader from '../objects/SubtitleLoader'
+import MulleBuffa from '../objects/buffa'
 
 class YardState extends MulleState {
   preload () {
@@ -22,6 +23,7 @@ class YardState extends MulleState {
   }
 
   create () {
+    this.giftNote = null
     super.create()
     this.game.mulle.addAudio('yard')
     this.subtitles.load()
@@ -41,28 +43,9 @@ class YardState extends MulleState {
 
     // var this.door_side, door_garage;
 
-    let mailbox
-    if (this.game.mulle.user.mail === 1) {
-      mailbox = new MulleButton(this.game, 320, 240, {
-        imageDefault: ['04.DXR', 44],
-        click: (a) => {
-          this.game.mulle.user.mail = 0
-          alert('Mission')
-        }
-      })
-    }
-    else {
-      mailbox = new MulleButton(this.game, 320, 240, {
-        imageDefault: ['04.DXR', 42],
-        imageHover: ['04.DXR', 43],
-        soundDefault: '04e009v0',
-        soundHover: '04e010v0',
-        click: (a) => {
-          this.mulleActor.talk('04d001v0')
-        }
-      })
-    }
-    this.game.add.existing(mailbox)
+    this.mailboxLayer = this.game.add.group()
+    this.readingMail = false
+    this.createMailbox(this.game.mulle.missions.getMission('#Mail'))
 
     if (this.game.mulle.user.toYardThroughDoor) {
       // without car
@@ -97,17 +80,14 @@ class YardState extends MulleState {
 
       this.mulleActor = new MulleActor(this.game, 67, 173, 'mulleDefault')
       this.game.add.existing(this.mulleActor)
-      this.buffaActor = new MulleActor(this.game, 320, 222, 'buffa')
+      // Buffa walks back and forth and sleeps, like BuffaYardBH
+      this.buffaActor = new MulleBuffa(this.game, 330, 222, 'yard')
       this.game.add.existing(this.buffaActor)
 
       if(this.game.mulle.user.figgeBeenHere === 1)
       {
         this.game.mulle.user.figgeBeenHere = 0
         this.mulleActor.talk('04d021v0')
-      }
-      if(this.game.mulle.user.mail === 1)
-      {
-        this.mulleActor.talk('04d020v0')
       }
 
     } else {
@@ -171,27 +151,10 @@ class YardState extends MulleState {
     this.junkParts.pileName = 'yard'
 
     for (let partId in this.game.mulle.user.Junk.yard) {
-      let pos = this.game.mulle.user.Junk.yard[partId]
-
-      let cPart = new MulleCarPart(this.game, partId, pos.x, pos.y)
-      cPart.junkParts = this.junkParts
-
-      cPart.dropTargets.push([this.door_side, (d) => {
-        d.destroy()
-        this.game.mulle.user.Junk.shopFloor[partId] = { x: this.game.rnd.integerInRange(0, 640), y: 240 }
-        this.game.mulle.playAudio('00e004v0')
-        return true
-      }])
-
-      cPart.dropTargets.push([this.door_garage, (d) => {
-        d.destroy()
-        this.game.mulle.user.Junk.shopFloor[partId] = { x: this.game.rnd.integerInRange(0, 640), y: 240 }
-        this.game.mulle.playAudio('00e004v0')
-        return true
-      }])
-
-      this.junkParts.addChild(cPart)
+      this.addYardPart(partId, this.game.mulle.user.Junk.yard[partId])
     }
+
+    this.checkGifts()
 
     this.game.mulle.playAudio('02e010v0')
 
@@ -213,13 +176,160 @@ class YardState extends MulleState {
       b_mail.innerHTML = 'Mail'
       b_mail.className = 'button'
       b_mail.addEventListener('click', () => {
-        this.game.mulle.user.mail = 1
-        console.log('Set mail to 1')
+        // The next mission comes when an even number of cars have been built
+        const user = this.game.mulle.user
+        user.NrOfBuiltCars = (user.NrOfBuiltCars || 0) + 2 - (user.NrOfBuiltCars || 0) % 2
+        user.missionIsComing = true
+        console.log('Next mission is coming', this.game.mulle.missions.checkMissions())
       })
       document.getElementById('cheats').appendChild(b_mail)
     }
 
     console.log('Yard', 'through door')
+  }
+
+  /**
+   * Add a part lying in the yard, it can be dragged into the garage
+   * @param {int} partId
+   * @param {{x: number, y: number}} pos
+   */
+  addYardPart (partId, pos) {
+    let cPart = new MulleCarPart(this.game, partId, pos.x, pos.y)
+    cPart.junkParts = this.junkParts
+
+    const toGarage = (d) => {
+      // The garage floor holds 15 parts, like letGoOfPart in PartsCommon
+      if (Object.keys(this.game.mulle.user.Junk.shopFloor).length >= 15) {
+        if (this.yardMulle && !this.yardMulle.isTalking) {
+          this.yardMulle.talk(this.game.rnd.pick(['04d016v0', '04d017v0', '04d018v0']))
+        }
+        return false
+      }
+      d.destroy()
+      this.game.mulle.user.Junk.shopFloor[partId] = { x: this.game.rnd.integerInRange(0, 640), y: 240 }
+      this.game.mulle.playAudio('00e004v0')
+      return true
+    }
+    cPart.dropTargets.push([this.door_side, toGarage])
+    cPart.dropTargets.push([this.door_garage, toGarage])
+
+    this.junkParts.addChild(cPart)
+    return cPart
+  }
+
+  /**
+   * Show the gift package if there are gifts, like startMovie and packageBH in 04.DXR
+   */
+  checkGifts () {
+    const gifts = this.game.mulle.user.gifts || []
+    if (!gifts.length) return
+
+    const giftPackage = new MulleButton(this.game, 180, 410, {
+      imageDefault: ['04.DXR', 53],
+      click: () => {
+        if (this.giftNote) return
+        this.showGiftNote(giftPackage)
+      }
+    })
+    this.game.add.existing(giftPackage)
+
+    if (this.yardMulle) {
+      this.yardMulle.talk(this.game.rnd.pick(['04d013v0', '04d014v0', '04d015v0']))
+    }
+  }
+
+  /**
+   * Show the note in the package, the parts end up in the yard when it has been read
+   * @param {MulleButton} giftPackage
+   */
+  showGiftNote (giftPackage) {
+    this.giftNote = new MulleSprite(this.game, 320, 240)
+    this.giftNote.setDirectorMember('04.DXR', 47)
+    this.giftNote.inputEnabled = true
+    this.giftNote.input.priorityID = 1000
+    this.game.add.existing(this.giftNote)
+
+    let finished = false
+    this.game.mulle.playAudio('04d023v0', () => { finished = true })
+
+    this.giftNote.events.onInputDown.add(() => {
+      if (!finished) return
+      for (const [partId, pos] of this.game.mulle.user.gifts) {
+        this.game.mulle.user.addPart('yard', partId, new Phaser.Point(pos.x, pos.y))
+        this.addYardPart(partId, pos)
+      }
+      this.game.mulle.user.gifts = []
+      this.game.mulle.user.save()
+      this.giftNote.destroy()
+      this.giftNote = null
+      giftPackage.destroy()
+    })
+  }
+
+  /**
+   * Mulle standing in the yard or sitting in the car
+   * @return {MulleActor}
+   */
+  get yardMulle () {
+    return this.mulleActor || (this.car && this.car.mulleSit)
+  }
+
+  /**
+   * Create the mailbox, with mail if a mission comes by mail
+   * @param {Object|null} mailMission
+   */
+  createMailbox (mailMission) {
+    this.mailboxLayer.removeAll(true)
+
+    let mailbox
+    if (mailMission) {
+      mailbox = new MulleButton(this.game, 320, 240, {
+        imageDefault: ['04.DXR', 44],
+        click: () => {
+          if (this.readingMail) return
+          this.readingMail = true
+          // There is mail for you
+          this.yardMulle.talk('04d020v0', () => this.readMail(mailMission))
+        }
+      })
+    } else {
+      mailbox = new MulleButton(this.game, 320, 240, {
+        imageDefault: ['04.DXR', 42],
+        imageHover: ['04.DXR', 43],
+        soundDefault: '04e009v0',
+        soundHover: '04e010v0',
+        click: () => {
+          // No mail today
+          if (this.yardMulle && !this.yardMulle.isTalking) this.yardMulle.talk('04d001v0')
+        }
+      })
+    }
+    this.mailboxLayer.add(mailbox)
+  }
+
+  /**
+   * Show the letter with a mission, like kickMail in the Missions script
+   * @param {Object} mission
+   */
+  readMail (mission) {
+    this.game.mulle.missions.missionGiven()
+
+    const letter = new MulleSprite(this.game, 320, 240)
+    letter.setDirectorMember('CDDATA.CXT', mission.image)
+    letter.inputEnabled = true
+    letter.input.priorityID = 1000
+    this.game.add.existing(letter)
+
+    let finished = false
+    this.game.mulle.playAudio(mission.sound, () => { finished = true })
+
+    // Click to put the letter away when it has been read
+    letter.events.onInputDown.add(() => {
+      if (!finished) return
+      letter.destroy()
+      this.readingMail = false
+      this.createMailbox(null)
+    })
   }
 
   shutdown () {
