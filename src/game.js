@@ -41,6 +41,7 @@ import MulleSave from 'struct/savedata'
 import PluginState from './scenes/plugin'
 import TreeCarState from './scenes/treecar'
 import LuddeLabbState from './scenes/luddelabb'
+import OceanState from './scenes/ocean'
 import CreditsState from './scenes/credits'
 import MudCarState from './scenes/mudcar'
 import DirectorHelper from './objects/DirectorHelper'
@@ -158,6 +159,7 @@ class MulleGame extends Phaser.Game {
       luddelabb: LuddeLabbState, // 91
       figgeferrum: FiggeFerrumState, // 92
       viola: ViolaState, // 89
+      ocean: OceanState, // 93
 
       carshow: CarShowState // 94
 

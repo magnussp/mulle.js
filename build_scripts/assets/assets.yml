@@ -366,6 +366,18 @@ mudcar:
         - 18
         - 19
 
+ocean:
+  93.DXR:
+    Internal:
+      members:
+        - 1 # Background
+        - [ 17, 21 ] # Fish animation
+        - 185 # Background sound
+        - 200 # Speech
+        - 202
+      opaque:
+        - 1
+
 plugin:
   06.DXR:
     Internal:
