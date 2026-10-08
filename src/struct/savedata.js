@@ -101,6 +101,21 @@ class MulleSave {
     return this.OwnStuff.indexOf(name) !== -1
   }
 
+  /**
+   * Mark a mission as completed, it is also marked as given
+   * @param {number} missionId
+   */
+  addCompletedMission (missionId) {
+    if (!this.isMissionCompleted(missionId)) this.CompletedMissions.push(missionId)
+    if (this.givenMissions.indexOf(missionId) === -1) this.givenMissions.push(missionId)
+
+    this.save()
+  }
+
+  isMissionCompleted (missionId) {
+    return this.CompletedMissions.indexOf(missionId) !== -1
+  }
+
   hasPart (partId) {
     // junk piles
     for (var junkKey in this.Junk) {
@@ -184,12 +199,12 @@ class MulleSave {
 
     this.NrOfBuiltCars = data.NrOfBuiltCars
     this.Saves = data.Saves
-    this.CompletedMissions = data.CompletedMissions
+    this.CompletedMissions = data.CompletedMissions || []
     this.OwnStuff = data.OwnStuff ? data.OwnStuff : []
     this.myLastPile = data.myLastPile
     this.gifts = data.gifts
     this.toYardThroughDoor = data.toYardThroughDoor
-    this.givenMissions = data.givenMissions
+    this.givenMissions = data.givenMissions || []
     this.figgeIsComing = data.figgeIsComing
     this.missionIsComing = data.missionIsComing
     this.savedCars = data.savedCars
@@ -207,7 +222,9 @@ class MulleSave {
       OwnStuff: this.OwnStuff,
       givenMissions: this.givenMissions,
       myLastPile: this.myLastPile,
-      savedCars: this.savedCars
+      savedCars: this.savedCars,
+      figgeIsComing: this.figgeIsComing,
+      missionIsComing: this.missionIsComing
     }
   }
 }

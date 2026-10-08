@@ -1,4 +1,5 @@
 import MullePartData from 'struct/partdata'
+import MulleMissions from 'struct/missions'
 
 class LoadState extends Phaser.State {
   preload () {
@@ -71,6 +72,8 @@ class LoadState extends Phaser.State {
     */
 
     this.game.mulle.ObjectsDB = this.game.cache.getJSON('ObjectsDB')
+
+    this.game.mulle.missions = new MulleMissions(this.game, this.game.cache.getJSON('MissionsDB'))
 
     // this.loadText = this.game.add.text(32, 32, 'Loading...', { fill: '#ffffff' });
 

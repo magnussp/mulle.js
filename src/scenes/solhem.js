@@ -92,6 +92,7 @@ class SolhemState extends MulleState {
                   // färja
                   miaHead.talk('86d005v0', () => {
                     this.game.mulle.user.addStuff('#FerryTicket')
+                    this.game.mulle.user.addCompletedMission(5)
 
                     // man tackar
                     mulle.talk('86d006v0', () => {

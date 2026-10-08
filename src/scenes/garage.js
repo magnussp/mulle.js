@@ -162,6 +162,38 @@ class GarageState extends MulleState {
     })
   }
 
+  /**
+   * The telephone rings and Mulle gets a mission, like kickTelephone in the Missions script
+   * @param {Object} mission
+   */
+  telephoneMission (mission) {
+    console.log('Telephone mission', mission)
+    this.game.input.enabled = false
+
+    // The small phone on the wall shakes while it rings
+    const phone = new MulleSprite(this.game, 319, 240)
+    phone.setDirectorMember('03.DXR', 102)
+    this.game.add.existing(phone)
+    const shake = this.game.time.events.loop(1000 / 12, () => {
+      phone.x = phone.x === 319 ? 317 : 319
+    })
+
+    this.game.mulle.playAudio('03e001v0', () => {
+      this.game.time.events.remove(shake)
+      phone.destroy()
+
+      const bigPhone = new MulleSprite(this.game, 320, 240)
+      bigPhone.setDirectorMember('03.DXR', 100)
+      this.game.add.existing(bigPhone)
+
+      this.game.mulle.playAudio(mission.sound, () => {
+        bigPhone.destroy()
+        this.game.mulle.missions.missionGiven()
+        this.game.input.enabled = true
+      })
+    })
+  }
+
   figgeHasParts () {
     this.game.mulle.user.calculateParts()
     return this.game.mulle.user.availableParts.JunkMan.length > 0
@@ -393,9 +425,13 @@ class GarageState extends MulleState {
 
     console.log('Built cars', this.game.mulle.user.NrOfBuiltCars)
     console.log('Built cars mod', this.game.mulle.user.NrOfBuiltCars % 3)
-    // Figge only comes when Mulle has visited him and he has parts left, like checkFigge
-    if (this.game.mulle.user.NrOfBuiltCars % 3 === 0 && this.game.mulle.user.figgeIsComing &&
-      this.game.mulle.user.hasStuff('#Visited92') && this.figgeHasParts()) {
+    // Missions by telephone, Figge comes first if it is his turn, like startMovie in 03.DXR
+    const figgeTurn = this.game.mulle.user.NrOfBuiltCars % 3 === 0 && this.game.mulle.user.figgeIsComing
+    const phoneMission = figgeTurn ? null : this.game.mulle.missions.getMission('#Telephone')
+    if (phoneMission) {
+      this.telephoneMission(phoneMission)
+    } else if (figgeTurn && this.game.mulle.user.hasStuff('#Visited92') && this.figgeHasParts()) {
+      // Figge only comes when Mulle has visited him and he has parts left, like checkFigge
       console.log('Figge is coming!')
       this.game.mulle.user.figgeIsComing = 0
       this.game.mulle.user.figgeBeenHere = 1
@@ -532,6 +568,8 @@ class GarageState extends MulleState {
 
   shutdown () {
     console.log('shutdown garage')
+
+    this.game.input.enabled = true
 
     this.game.mulle.user.Junk.shopFloor = {}
 

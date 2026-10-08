@@ -210,9 +210,10 @@ garage:
         - 33  # Background
         - [ 34, 40 ]  # Doors
         - [ 81, 93 ]  # figge
-        - [ 101, 105 ]  # phone and hover
+        - [ 100, 105 ]  # phone and hover
         - [ 107, 108 ]  # figge truck
         - [ 181, 183 ]  # ui sounds
+        - 185 # telephone ring
         - [ 208, 223 ]  # voices
         - [ 226, 258 ]  # voices
         - [ 262, 264 ]  # voice remarks
